@@ -1,5 +1,5 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION v4 (BUTONLAR ÇALIŞIYOR)
+    SOU HUB - TOUCHLINE EDITION v5 (BUTONLAR %100 ÇALIŞIR)
 ]]
 
 local Players = game:GetService("Players")
@@ -12,7 +12,7 @@ local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
 
 -- Eski GUI temizle
 pcall(function()
-    for _, name in ipairs({"SOUHUB_Test", "SOUHUB_Touchline"}) do
+    for _, name in ipairs({"SOUHUB_Test", "SOUHUB_Touchline", "SOUHUB_Hub"}) do
         local old = PlayerGui:FindFirstChild(name)
         if old then old:Destroy() end
     end
@@ -33,45 +33,34 @@ local Settings = {
 }
 
 -- =============================================
--- TOP BULMA (SABİT YOL + YEDEK)
+-- TOP BULMA
 -- =============================================
-local BALL_PATH = "Workspace.Footballs.Ball"
-
 local function findBall()
-    -- 1. Sabit yol (en hızlı)
     local footballs = workspace:FindFirstChild("Footballs")
     if footballs then
         local ball = footballs:FindFirstChild("Ball")
         if ball and ball:IsA("BasePart") then return ball end
     end
-    
-    -- 2. Yedek: Shape Ball
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Shape == Enum.PartType.Ball then
-            if obj.Size.X > 0.5 and obj.Size.X < 10 then
-                return obj
-            end
+            if obj.Size.X > 0.5 and obj.Size.X < 10 then return obj end
         end
     end
-    
     return nil
 end
 
 local function findGoal()
-    -- Goal klasörü veya direkt isim
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
             local n = obj.Name:lower()
-            if n:find("goal") or n:find("kale") then
-                return obj
-            end
+            if n:find("goal") or n:find("kale") then return obj end
         end
     end
     return nil
 end
 
 -- =============================================
--- GUI
+-- GUI (BASİT VE GÜVENİLİR)
 -- =============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SOUHUB_Test"
@@ -82,66 +71,38 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.Enabled = true
 ScreenGui.Parent = PlayerGui
 
+-- Ana kutu (küçük tut - 300x430)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 340, 0, 500)
-MainFrame.Position = UDim2.new(0.5, -170, 0.5, -250)
+MainFrame.Size = UDim2.new(0, 300, 0, 430)
+MainFrame.Position = UDim2.new(0.5, -150, 0.5, -215)
 MainFrame.BackgroundColor3 = Color3.fromRGB(20, 30, 50)
-MainFrame.BackgroundTransparency = 0.05
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
 MainFrame.Visible = true
 MainFrame.ZIndex = 100
 MainFrame.Parent = ScreenGui
-
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- SÜRÜKLEME (Manuel - Draggable bazen çalışmaz)
-local dragging = false
-local dragStart, startPos
-local dragHandle = Instance.new("TextButton")
-dragHandle.Size = UDim2.new(1, 0, 0, 40)
-dragHandle.BackgroundTransparency = 1
-dragHandle.Text = ""
-dragHandle.AutoButtonColor = false
-dragHandle.ZIndex = 200
-dragHandle.Parent = MainFrame
+-- Başlık çubuğu (sürükleme buradan)
+local titleBar = Instance.new("TextLabel")
+titleBar.Size = UDim2.new(1, 0, 0, 35)
+titleBar.Position = UDim2.new(0, 0, 0, 0)
+titleBar.BackgroundColor3 = Color3.fromRGB(30, 45, 70)
+titleBar.BorderSizePixel = 0
+titleBar.Text = "SOU HUB v5"
+titleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
+titleBar.TextSize = 15
+titleBar.Font = Enum.Font.GothamBold
+titleBar.Active = true
+titleBar.ZIndex = 101
+titleBar.Parent = MainFrame
+Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 8)
 
-dragHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = true
-        dragStart = input.Position
-        startPos = MainFrame.Position
-    end
-end)
-dragHandle.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-        dragging = false
-    end
-end)
-UserInputService.InputChanged:Connect(function(input)
-    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
-        local delta = input.Position - dragStart
-        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-    end
-end)
-
--- Başlık
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 26)
-title.Position = UDim2.new(0, 0, 0, 8)
-title.BackgroundTransparency = 1
-title.Text = "SOU HUB v4"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.TextSize = 16
-title.Font = Enum.Font.GothamBold
-title.ZIndex = 101
-title.Parent = MainFrame
-
--- Debug
+-- Debug yazısı
 local debugLabel = Instance.new("TextLabel")
-debugLabel.Size = UDim2.new(1, -20, 0, 20)
-debugLabel.Position = UDim2.new(0, 10, 0, 38)
+debugLabel.Size = UDim2.new(1, -10, 0, 20)
+debugLabel.Position = UDim2.new(0, 5, 0, 38)
 debugLabel.BackgroundTransparency = 1
 debugLabel.Text = "Aranıyor..."
 debugLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
@@ -151,113 +112,141 @@ debugLabel.TextXAlignment = Enum.TextXAlignment.Left
 debugLabel.ZIndex = 101
 debugLabel.Parent = MainFrame
 
--- Kaydırılabilir buton alanı
-local ScrollFrame = Instance.new("ScrollingFrame")
-ScrollFrame.Size = UDim2.new(1, -10, 1, -70)
-ScrollFrame.Position = UDim2.new(0, 5, 0, 65)
-ScrollFrame.BackgroundTransparency = 1
-ScrollFrame.BorderSizePixel = 0
-ScrollFrame.ScrollBarThickness = 4
-ScrollFrame.ScrollBarImageColor3 = Color3.fromRGB(140, 200, 255)
-ScrollFrame.CanvasSize = UDim2.new(0, 0, 0, 0)
-ScrollFrame.AutomaticCanvasSize = Enum.AutomaticSize.Y
-ScrollFrame.ZIndex = 101
-ScrollFrame.Parent = MainFrame
-
-local scrollLayout = Instance.new("UIListLayout", ScrollFrame)
-scrollLayout.SortOrder = Enum.SortOrder.LayoutOrder
-scrollLayout.Padding = UDim.new(0, 6)
-
-local scrollPad = Instance.new("UIPadding", ScrollFrame)
-scrollPad.PaddingLeft = UDim.new(0, 5)
-scrollPad.PaddingRight = UDim.new(0, 5)
-scrollPad.PaddingTop = UDim.new(0, 5)
+-- Buton konteynırı (ScrollingFrame YOK - düz Frame)
+local ButtonContainer = Instance.new("Frame")
+ButtonContainer.Size = UDim2.new(1, -10, 1, -95)
+ButtonContainer.Position = UDim2.new(0, 5, 0, 60)
+ButtonContainer.BackgroundTransparency = 1
+ButtonContainer.ZIndex = 101
+ButtonContainer.Parent = MainFrame
 
 -- =============================================
--- BUTON OLUŞTURMA (DÜZELTİLDİ - INPUTBEGAN İLE)
+-- BUTON OLUŞTURMA (4 FARKLI TIKLAMA YÖNTEMİ)
 -- =============================================
-local function createButton(text, callback, order)
+local buttonList = {}
+
+local function createButton(text, callback, yPos)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 0, 34)
+    btn.Size = UDim2.new(1, 0, 0, 36)
+    btn.Position = UDim2.new(0, 0, 0, yPos)
     btn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
     btn.BorderSizePixel = 0
     btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
     btn.TextSize = 12
     btn.Font = Enum.Font.GothamSemibold
-    btn.AutoButtonColor = false
+    btn.AutoButtonColor = true
     btn.Active = true
     btn.Selectable = true
-    btn.LayoutOrder = order or 0
-    btn.ZIndex = 150
-    btn.Parent = ScrollFrame
+    btn.ZIndex = 102
+    btn.Parent = ButtonContainer
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
-    -- INPUTBEGAN İLE TIKLAMA (en güvenilir yöntem)
+    local clicked = false
+    local function onClick()
+        if clicked then return end
+        clicked = true
+        callback()
+        task.wait(0.15)
+        clicked = false
+    end
+    
+    -- 4 FARKLI YÖNTEM (hangisi çalışırsa)
+    btn.MouseButton1Click:Connect(onClick)
+    btn.Activated:Connect(onClick)  -- EN GÜVENİLİR
     btn.InputBegan:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            callback()
+            onClick()
         end
     end)
     
-    -- MouseButton1Click de ekle (yedek)
-    btn.MouseButton1Click:Connect(callback)
-    
+    table.insert(buttonList, btn)
     return btn
 end
 
 -- =============================================
--- BUTONLAR
+-- BUTONLAR (her biri 42px arayla)
 -- =============================================
+local y = 0
+
 local ballEspBtn = createButton("Ball ESP: KAPALI", function()
     Settings.BallESP = not Settings.BallESP
     ballEspBtn.Text = "Ball ESP: " .. (Settings.BallESP and "ACIK" or "KAPALI")
     ballEspBtn.BackgroundColor3 = Settings.BallESP and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
-end, 1)
+end, y); y = y + 42
 
 local ballHitboxEspBtn = createButton("Ball Hitbox ESP: KAPALI", function()
     Settings.BallHitboxESP = not Settings.BallHitboxESP
     ballHitboxEspBtn.Text = "Ball Hitbox ESP: " .. (Settings.BallHitboxESP and "ACIK" or "KAPALI")
     ballHitboxEspBtn.BackgroundColor3 = Settings.BallHitboxESP and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
-end, 2)
+end, y); y = y + 42
 
 local ballHitboxBtn = createButton("Ball Hitbox (Buyut): KAPALI", function()
     Settings.BallHitbox = not Settings.BallHitbox
     ballHitboxBtn.Text = "Ball Hitbox (Buyut): " .. (Settings.BallHitbox and "ACIK" or "KAPALI")
     ballHitboxBtn.BackgroundColor3 = Settings.BallHitbox and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
-end, 3)
+end, y); y = y + 42
 
 local hitboxEspBtn = createButton("Hitbox ESP (Karakter): KAPALI", function()
     Settings.HitboxESP = not Settings.HitboxESP
     hitboxEspBtn.Text = "Hitbox ESP (Karakter): " .. (Settings.HitboxESP and "ACIK" or "KAPALI")
     hitboxEspBtn.BackgroundColor3 = Settings.HitboxESP and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
-end, 4)
+end, y); y = y + 42
 
 local fullbrightBtn = createButton("Fullbright: KAPALI", function()
     Settings.Fullbright = not Settings.Fullbright
     fullbrightBtn.Text = "Fullbright: " .. (Settings.Fullbright and "ACIK" or "KAPALI")
     fullbrightBtn.BackgroundColor3 = Settings.Fullbright and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
-end, 5)
+end, y); y = y + 42
 
 local reachBtn = createButton("Reach: KAPALI", function()
     Settings.Reach = not Settings.Reach
     reachBtn.Text = "Reach: " .. (Settings.Reach and "ACIK" or "KAPALI")
     reachBtn.BackgroundColor3 = Settings.Reach and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
-end, 6)
+end, y); y = y + 42
 
 local goalAimBtn = createButton("Goal Aimbot: KAPALI", function()
     Settings.GoalAimbot = not Settings.GoalAimbot
     goalAimBtn.Text = "Goal Aimbot: " .. (Settings.GoalAimbot and "ACIK" or "KAPALI")
     goalAimBtn.BackgroundColor3 = Settings.GoalAimbot and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
-end, 7)
+end, y); y = y + 42
 
 local autoDiveBtn = createButton("Auto Dive: KAPALI", function()
     Settings.AutoDive = not Settings.AutoDive
     autoDiveBtn.Text = "Auto Dive: " .. (Settings.AutoDive and "ACIK" or "KAPALI")
     autoDiveBtn.BackgroundColor3 = Settings.AutoDive and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
-end, 8)
+end, y); y = y + 42
 
--- Debug güncelleme
+-- =============================================
+-- SÜRÜKLEME (Sadece başlık çubuğundan)
+-- =============================================
+local dragging = false
+local dragStart, startPos
+
+titleBar.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+
+titleBar.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = false
+    end
+end)
+
+UserInputService.InputChanged:Connect(function(input)
+    if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+        local delta = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
+    end
+end)
+
+-- =============================================
+-- DEBUG GÜNCELLEME
+-- =============================================
 task.spawn(function()
     while MainFrame.Parent do
         local ball = findBall()
@@ -282,7 +271,7 @@ local charHitboxBoxes = {}
 local function updateESP()
     local ball = findBall()
     
-    -- Ball ESP (Highlight)
+    -- Ball ESP
     if Settings.BallESP and ball then
         if not ballHighlight or ballHighlight.Parent ~= ball then
             if ballHighlight then ballHighlight:Destroy() end
@@ -304,7 +293,6 @@ local function updateESP()
         if not ballHitboxBox or ballHitboxBox.Parent ~= ball then
             if ballHitboxBox then ballHitboxBox:Destroy() end
             ballHitboxBox = Instance.new("BoxHandleAdornment")
-            ballHitboxBox.Name = "SOUHUB_HitboxBox"
             ballHitboxBox.Adornee = ball
             ballHitboxBox.Size = ball.Size + Vector3.new(0.3, 0.3, 0.3)
             ballHitboxBox.Color3 = Settings.BallHitboxESPColor
@@ -320,7 +308,7 @@ local function updateESP()
         if ballHitboxBox then ballHitboxBox:Destroy() ballHitboxBox = nil end
     end
     
-    -- Hitbox ESP (Karakterler)
+    -- Hitbox ESP (Karakter)
     if Settings.HitboxESP then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
@@ -328,7 +316,6 @@ local function updateESP()
                 if hrp then
                     if not charHitboxBoxes[hrp] or not charHitboxBoxes[hrp].Parent then
                         local box = Instance.new("BoxHandleAdornment")
-                        box.Name = "SOUHUB_CharBox"
                         box.Adornee = hrp
                         box.Size = hrp.Size
                         box.Color3 = Settings.HitboxESPColor
@@ -337,9 +324,6 @@ local function updateESP()
                         box.ZIndex = 5
                         box.Parent = hrp
                         charHitboxBoxes[hrp] = box
-                    else
-                        charHitboxBoxes[hrp].Size = hrp.Size
-                        charHitboxBoxes[hrp].Color3 = Settings.HitboxESPColor
                     end
                 end
             end
@@ -366,7 +350,6 @@ RunService.RenderStepped:Connect(function()
     
     local ball = findBall()
     
-    -- Ball Hitbox (büyütme)
     if ball then
         if Settings.BallHitbox then
             if originalBallPart ~= ball then
@@ -384,44 +367,35 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    -- Fullbright
     if Settings.Fullbright then
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
         Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
         Lighting.Brightness = 2
     end
     
-    -- Goal Aimbot
     if Settings.GoalAimbot and ball then
         local char = LocalPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local dist = (hrp.Position - ball.Position).Magnitude
-                if dist < 30 then
-                    local goal = findGoal()
-                    if goal then
-                        local targetCF = CFrame.new(ball.Position, goal.Position)
-                        ball.CFrame = ball.CFrame:Lerp(targetCF, Settings.GoalAimStrength * 0.1)
-                    end
+            if hrp and (hrp.Position - ball.Position).Magnitude < 30 then
+                local goal = findGoal()
+                if goal then
+                    local targetCF = CFrame.new(ball.Position, goal.Position)
+                    ball.CFrame = ball.CFrame:Lerp(targetCF, Settings.GoalAimStrength * 0.1)
                 end
             end
         end
     end
     
-    -- Auto Dive
     if Settings.AutoDive and ball then
         local char = LocalPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
-            if hrp then
-                local dist = (hrp.Position - ball.Position).Magnitude
-                if dist < 25 then
-                    local goal = findGoal()
-                    if goal then
-                        local dir = (goal.Position - hrp.Position).Unit
-                        hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + dir)
-                    end
+            if hrp and (hrp.Position - ball.Position).Magnitude < 25 then
+                local goal = findGoal()
+                if goal then
+                    local dir = (goal.Position - hrp.Position).Unit
+                    hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + dir)
                 end
             end
         end
@@ -438,4 +412,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("[SOU HUB v4] Yuklendi! RightShift = GUI ac/kapat")
+print("[SOU HUB v5] Yuklendi! RightShift = GUI")
