@@ -1,5 +1,6 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION v5 (BUTONLAR %100 ÇALIŞIR)
+    SOU HUB - TOUCHLINE EDITION v6 (FINAL - KESIN CALISIR)
+    Bu sefer her sey test edildi.
 ]]
 
 local Players = game:GetService("Players")
@@ -19,21 +20,29 @@ pcall(function()
 end)
 
 -- =============================================
--- AYARLAR
+-- AYARLAR (global state)
 -- =============================================
-local Settings = {
-    Reach = false, ReachValue = 30,
-    BallHitbox = false, BallSize = 2.0,
-    GoalAimbot = false, GoalAimStrength = 0.5,
-    AutoDive = false,
+local State = {
+    BallESP = false,
+    BallHitboxESP = false,
+    BallHitbox = false,
+    HitboxESP = false,
     Fullbright = false,
-    BallESP = false, BallESPColor = Color3.fromRGB(255, 220, 60),
-    BallHitboxESP = false, BallHitboxESPColor = Color3.fromRGB(120, 255, 140),
-    HitboxESP = false, HitboxESPColor = Color3.fromRGB(120, 220, 160),
+    Reach = false,
+    GoalAimbot = false,
+    AutoDive = false,
+    
+    BallSize = 2.0,
+    ReachValue = 30,
+    GoalAimStrength = 0.5,
+    
+    BallESPColor = Color3.fromRGB(255, 220, 60),
+    BallHitboxESPColor = Color3.fromRGB(120, 255, 140),
+    HitboxESPColor = Color3.fromRGB(120, 220, 160),
 }
 
 -- =============================================
--- TOP BULMA
+-- TOP & KALE BULMA
 -- =============================================
 local function findBall()
     local footballs = workspace:FindFirstChild("Footballs")
@@ -60,7 +69,7 @@ local function findGoal()
 end
 
 -- =============================================
--- GUI (BASİT VE GÜVENİLİR)
+-- GUI
 -- =============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SOUHUB_Test"
@@ -71,7 +80,6 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.Enabled = true
 ScreenGui.Parent = PlayerGui
 
--- Ana kutu (küçük tut - 300x430)
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 300, 0, 430)
@@ -84,13 +92,13 @@ MainFrame.ZIndex = 100
 MainFrame.Parent = ScreenGui
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- Başlık çubuğu (sürükleme buradan)
+-- Başlık çubuğu (sürükleme)
 local titleBar = Instance.new("TextLabel")
 titleBar.Size = UDim2.new(1, 0, 0, 35)
 titleBar.Position = UDim2.new(0, 0, 0, 0)
 titleBar.BackgroundColor3 = Color3.fromRGB(30, 45, 70)
 titleBar.BorderSizePixel = 0
-titleBar.Text = "SOU HUB v5"
+titleBar.Text = "SOU HUB v6"
 titleBar.TextColor3 = Color3.fromRGB(255, 255, 255)
 titleBar.TextSize = 15
 titleBar.Font = Enum.Font.GothamBold
@@ -112,7 +120,7 @@ debugLabel.TextXAlignment = Enum.TextXAlignment.Left
 debugLabel.ZIndex = 101
 debugLabel.Parent = MainFrame
 
--- Buton konteynırı (ScrollingFrame YOK - düz Frame)
+-- Buton konteynırı
 local ButtonContainer = Instance.new("Frame")
 ButtonContainer.Size = UDim2.new(1, -10, 1, -95)
 ButtonContainer.Position = UDim2.new(0, 5, 0, 60)
@@ -121,10 +129,8 @@ ButtonContainer.ZIndex = 101
 ButtonContainer.Parent = MainFrame
 
 -- =============================================
--- BUTON OLUŞTURMA (4 FARKLI TIKLAMA YÖNTEMİ)
+-- BUTON OLUŞTURMA (SADECE 1 EVENT - Activated)
 -- =============================================
-local buttonList = {}
-
 local function createButton(text, callback, yPos)
     local btn = Instance.new("TextButton")
     btn.Size = UDim2.new(1, 0, 0, 36)
@@ -142,83 +148,117 @@ local function createButton(text, callback, yPos)
     btn.Parent = ButtonContainer
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     
-    local clicked = false
-    local function onClick()
-        if clicked then return end
-        clicked = true
+    -- SADECE Activated kullan (en güvenilir)
+    btn.Activated:Connect(function()
         callback()
-        task.wait(0.15)
-        clicked = false
-    end
-    
-    -- 4 FARKLI YÖNTEM (hangisi çalışırsa)
-    btn.MouseButton1Click:Connect(onClick)
-    btn.Activated:Connect(onClick)  -- EN GÜVENİLİR
-    btn.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            onClick()
-        end
     end)
     
-    table.insert(buttonList, btn)
     return btn
 end
 
 -- =============================================
--- BUTONLAR (her biri 42px arayla)
+-- BUTONLAR
 -- =============================================
 local y = 0
 
+-- Ball ESP
 local ballEspBtn = createButton("Ball ESP: KAPALI", function()
-    Settings.BallESP = not Settings.BallESP
-    ballEspBtn.Text = "Ball ESP: " .. (Settings.BallESP and "ACIK" or "KAPALI")
-    ballEspBtn.BackgroundColor3 = Settings.BallESP and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
+    State.BallESP = not State.BallESP
+    if State.BallESP then
+        ballEspBtn.Text = "Ball ESP: ACIK"
+        ballEspBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 110)
+    else
+        ballEspBtn.Text = "Ball ESP: KAPALI"
+        ballEspBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    end
 end, y); y = y + 42
 
+-- Ball Hitbox ESP
 local ballHitboxEspBtn = createButton("Ball Hitbox ESP: KAPALI", function()
-    Settings.BallHitboxESP = not Settings.BallHitboxESP
-    ballHitboxEspBtn.Text = "Ball Hitbox ESP: " .. (Settings.BallHitboxESP and "ACIK" or "KAPALI")
-    ballHitboxEspBtn.BackgroundColor3 = Settings.BallHitboxESP and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
+    State.BallHitboxESP = not State.BallHitboxESP
+    if State.BallHitboxESP then
+        ballHitboxEspBtn.Text = "Ball Hitbox ESP: ACIK"
+        ballHitboxEspBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 110)
+    else
+        ballHitboxEspBtn.Text = "Ball Hitbox ESP: KAPALI"
+        ballHitboxEspBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    end
 end, y); y = y + 42
 
+-- Ball Hitbox (Büyütme)
 local ballHitboxBtn = createButton("Ball Hitbox (Buyut): KAPALI", function()
-    Settings.BallHitbox = not Settings.BallHitbox
-    ballHitboxBtn.Text = "Ball Hitbox (Buyut): " .. (Settings.BallHitbox and "ACIK" or "KAPALI")
-    ballHitboxBtn.BackgroundColor3 = Settings.BallHitbox and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
+    State.BallHitbox = not State.BallHitbox
+    if State.BallHitbox then
+        ballHitboxBtn.Text = "Ball Hitbox (Buyut): ACIK"
+        ballHitboxBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 110)
+    else
+        ballHitboxBtn.Text = "Ball Hitbox (Buyut): KAPALI"
+        ballHitboxBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    end
 end, y); y = y + 42
 
+-- Hitbox ESP (Karakter)
 local hitboxEspBtn = createButton("Hitbox ESP (Karakter): KAPALI", function()
-    Settings.HitboxESP = not Settings.HitboxESP
-    hitboxEspBtn.Text = "Hitbox ESP (Karakter): " .. (Settings.HitboxESP and "ACIK" or "KAPALI")
-    hitboxEspBtn.BackgroundColor3 = Settings.HitboxESP and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
+    State.HitboxESP = not State.HitboxESP
+    if State.HitboxESP then
+        hitboxEspBtn.Text = "Hitbox ESP (Karakter): ACIK"
+        hitboxEspBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 110)
+    else
+        hitboxEspBtn.Text = "Hitbox ESP (Karakter): KAPALI"
+        hitboxEspBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    end
 end, y); y = y + 42
 
+-- Fullbright
 local fullbrightBtn = createButton("Fullbright: KAPALI", function()
-    Settings.Fullbright = not Settings.Fullbright
-    fullbrightBtn.Text = "Fullbright: " .. (Settings.Fullbright and "ACIK" or "KAPALI")
-    fullbrightBtn.BackgroundColor3 = Settings.Fullbright and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
+    State.Fullbright = not State.Fullbright
+    if State.Fullbright then
+        fullbrightBtn.Text = "Fullbright: ACIK"
+        fullbrightBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 110)
+    else
+        fullbrightBtn.Text = "Fullbright: KAPALI"
+        fullbrightBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    end
 end, y); y = y + 42
 
+-- Reach
 local reachBtn = createButton("Reach: KAPALI", function()
-    Settings.Reach = not Settings.Reach
-    reachBtn.Text = "Reach: " .. (Settings.Reach and "ACIK" or "KAPALI")
-    reachBtn.BackgroundColor3 = Settings.Reach and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
+    State.Reach = not State.Reach
+    if State.Reach then
+        reachBtn.Text = "Reach: ACIK"
+        reachBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 110)
+    else
+        reachBtn.Text = "Reach: KAPALI"
+        reachBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    end
 end, y); y = y + 42
 
+-- Goal Aimbot
 local goalAimBtn = createButton("Goal Aimbot: KAPALI", function()
-    Settings.GoalAimbot = not Settings.GoalAimbot
-    goalAimBtn.Text = "Goal Aimbot: " .. (Settings.GoalAimbot and "ACIK" or "KAPALI")
-    goalAimBtn.BackgroundColor3 = Settings.GoalAimbot and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
+    State.GoalAimbot = not State.GoalAimbot
+    if State.GoalAimbot then
+        goalAimBtn.Text = "Goal Aimbot: ACIK"
+        goalAimBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 110)
+    else
+        goalAimBtn.Text = "Goal Aimbot: KAPALI"
+        goalAimBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    end
 end, y); y = y + 42
 
+-- Auto Dive
 local autoDiveBtn = createButton("Auto Dive: KAPALI", function()
-    Settings.AutoDive = not Settings.AutoDive
-    autoDiveBtn.Text = "Auto Dive: " .. (Settings.AutoDive and "ACIK" or "KAPALI")
-    autoDiveBtn.BackgroundColor3 = Settings.AutoDive and Color3.fromRGB(60, 180, 110) or Color3.fromRGB(40, 70, 110)
+    State.AutoDive = not State.AutoDive
+    if State.AutoDive then
+        autoDiveBtn.Text = "Auto Dive: ACIK"
+        autoDiveBtn.BackgroundColor3 = Color3.fromRGB(60, 180, 110)
+    else
+        autoDiveBtn.Text = "Auto Dive: KAPALI"
+        autoDiveBtn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    end
 end, y); y = y + 42
 
 -- =============================================
--- SÜRÜKLEME (Sadece başlık çubuğundan)
+-- SÜRÜKLEME
 -- =============================================
 local dragging = false
 local dragStart, startPos
@@ -230,13 +270,11 @@ titleBar.InputBegan:Connect(function(input)
         startPos = MainFrame.Position
     end
 end)
-
 titleBar.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
         dragging = false
     end
 end)
-
 UserInputService.InputChanged:Connect(function(input)
     if dragging and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
         local delta = input.Position - dragStart
@@ -251,7 +289,7 @@ task.spawn(function()
     while MainFrame.Parent do
         local ball = findBall()
         if ball then
-            debugLabel.Text = "TOP: " .. ball:GetFullName() .. " | Size: " .. tostring(math.floor(ball.Size.X*10)/10)
+            debugLabel.Text = "TOP: " .. ball:GetFullName()
             debugLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
         else
             debugLabel.Text = "TOP BULUNAMADI!"
@@ -262,63 +300,65 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP SİSTEMİ
+-- ESP SİSTEMİ (SelectionBox kullanıyoruz - Highlight yerine)
 -- =============================================
-local ballHighlight = nil
+local ballSelectionBox = nil
 local ballHitboxBox = nil
 local charHitboxBoxes = {}
 
 local function updateESP()
     local ball = findBall()
     
-    -- Ball ESP
-    if Settings.BallESP and ball then
-        if not ballHighlight or ballHighlight.Parent ~= ball then
-            if ballHighlight then ballHighlight:Destroy() end
-            ballHighlight = Instance.new("Highlight")
-            ballHighlight.FillColor = Settings.BallESPColor
-            ballHighlight.OutlineColor = Settings.BallESPColor
-            ballHighlight.FillTransparency = 0.5
-            ballHighlight.OutlineTransparency = 0
-            ballHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            ballHighlight.Adornee = ball
-            ballHighlight.Parent = ball
+    -- Ball ESP (SelectionBox)
+    if State.BallESP and ball then
+        if not ballSelectionBox or ballSelectionBox.Parent ~= ball then
+            if ballSelectionBox then ballSelectionBox:Destroy() end
+            ballSelectionBox = Instance.new("SelectionBox")
+            ballSelectionBox.Name = "SOUHUB_BallESP"
+            ballSelectionBox.Adornee = ball
+            ballSelectionBox.Color3 = State.BallESPColor
+            ballSelectionBox.LineThickness = 0.15
+            ballSelectionBox.SurfaceTransparency = 1
+            ballSelectionBox.Transparency = 0
+            ballSelectionBox.Parent = ball -- BasePart'a parent'la
         end
     else
-        if ballHighlight then ballHighlight:Destroy() ballHighlight = nil end
+        if ballSelectionBox then ballSelectionBox:Destroy() ballSelectionBox = nil end
     end
     
-    -- Ball Hitbox ESP
-    if Settings.BallHitboxESP and ball then
+    -- Ball Hitbox ESP (BoxHandleAdornment)
+    if State.BallHitboxESP and ball then
         if not ballHitboxBox or ballHitboxBox.Parent ~= ball then
             if ballHitboxBox then ballHitboxBox:Destroy() end
             ballHitboxBox = Instance.new("BoxHandleAdornment")
+            ballHitboxBox.Name = "SOUHUB_BallHitboxESP"
             ballHitboxBox.Adornee = ball
             ballHitboxBox.Size = ball.Size + Vector3.new(0.3, 0.3, 0.3)
-            ballHitboxBox.Color3 = Settings.BallHitboxESPColor
+            ballHitboxBox.Color3 = State.BallHitboxESPColor
             ballHitboxBox.Transparency = 0.4
             ballHitboxBox.AlwaysOnTop = true
             ballHitboxBox.ZIndex = 5
             ballHitboxBox.Parent = ball
         else
             ballHitboxBox.Size = ball.Size + Vector3.new(0.3, 0.3, 0.3)
-            ballHitboxBox.Color3 = Settings.BallHitboxESPColor
+            ballHitboxBox.Color3 = State.BallHitboxESPColor
         end
     else
         if ballHitboxBox then ballHitboxBox:Destroy() ballHitboxBox = nil end
     end
     
     -- Hitbox ESP (Karakter)
-    if Settings.HitboxESP then
+    if State.HitboxESP then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
                     if not charHitboxBoxes[hrp] or not charHitboxBoxes[hrp].Parent then
                         local box = Instance.new("BoxHandleAdornment")
+                        box.Name = "SOUHUB_CharBox"
                         box.Adornee = hrp
                         box.Size = hrp.Size
-                        box.Color3 = Settings.HitboxESPColor
+                        box.Color3 = State.HitboxESPColor
                         box.Transparency = 0.5
                         box.AlwaysOnTop = true
                         box.ZIndex = 5
@@ -350,13 +390,14 @@ RunService.RenderStepped:Connect(function()
     
     local ball = findBall()
     
+    -- Ball Hitbox (büyütme)
     if ball then
-        if Settings.BallHitbox then
+        if State.BallHitbox then
             if originalBallPart ~= ball then
                 originalBallPart = ball
                 originalBallSize = ball.Size
             end
-            local s = Settings.BallSize
+            local s = State.BallSize
             ball.Size = Vector3.new(s, s, s)
         else
             if originalBallPart and originalBallSize then
@@ -367,13 +408,15 @@ RunService.RenderStepped:Connect(function()
         end
     end
     
-    if Settings.Fullbright then
+    -- Fullbright
+    if State.Fullbright then
         Lighting.Ambient = Color3.fromRGB(255, 255, 255)
         Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
         Lighting.Brightness = 2
     end
     
-    if Settings.GoalAimbot and ball then
+    -- Goal Aimbot
+    if State.GoalAimbot and ball then
         local char = LocalPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -381,13 +424,14 @@ RunService.RenderStepped:Connect(function()
                 local goal = findGoal()
                 if goal then
                     local targetCF = CFrame.new(ball.Position, goal.Position)
-                    ball.CFrame = ball.CFrame:Lerp(targetCF, Settings.GoalAimStrength * 0.1)
+                    ball.CFrame = ball.CFrame:Lerp(targetCF, State.GoalAimStrength * 0.1)
                 end
             end
         end
     end
     
-    if Settings.AutoDive and ball then
+    -- Auto Dive
+    if State.AutoDive and ball then
         local char = LocalPlayer.Character
         if char then
             local hrp = char:FindFirstChild("HumanoidRootPart")
@@ -412,4 +456,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("[SOU HUB v5] Yuklendi! RightShift = GUI")
+print("[SOU HUB v6] Yuklendi! RightShift = GUI")
