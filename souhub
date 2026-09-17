@@ -1,7 +1,6 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION v2 (FIXED)
-    Reach + Ball Hitbox + Goal Aimbot + Auto Dive
-    Ball ESP + Hitbox ESP + Ball Hitbox ESP + Keybind Sistemi
+    SOU HUB - TOUCHLINE EDITION v2 (UNIVERSAL FIX)
+    Otomatik top/kale bulma + tüm özellikler
 ]]
 
 print("[SOU HUB] Yukleniyor...")
@@ -9,26 +8,19 @@ print("[SOU HUB] Yukleniyor...")
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
-local GuiService = game:GetService("GuiService")
 local Lighting = game:GetService("Lighting")
 local TweenService = game:GetService("TweenService")
-local CoreGui = game:GetService("CoreGui")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
-local Mouse = LocalPlayer:GetMouse()
 
 -- =============================================
 -- THEME
 -- =============================================
 local Theme = {
     Bg = Color3.fromRGB(10, 18, 32),
-    Panel = Color3.fromRGB(16, 28, 46),
-    Header = Color3.fromRGB(14, 24, 40),
     Button = Color3.fromRGB(26, 42, 66),
-    Slider = Color3.fromRGB(30, 48, 72),
     Accent = Color3.fromRGB(140, 200, 255),
-    Accent2 = Color3.fromRGB(232, 244, 255),
     Text = Color3.fromRGB(220, 235, 250),
     SubText = Color3.fromRGB(140, 165, 195),
     Border = Color3.fromRGB(45, 70, 105),
@@ -50,20 +42,17 @@ local Settings = {
     GoalAimbot = false, GoalAimStrength = 0.5,
     AutoDive = false,
     Fullbright = false,
-    
     BallESP = false,
     BallESPBox = true,
     BallESPName = true,
     BallESPDistance = true,
     BallESPColor = Color3.fromRGB(255, 220, 60),
-    
-    HitboxESP = false,
-    HitboxESPTransparency = 0.7,
-    HitboxESPColor = Color3.fromRGB(120, 220, 160),
-    
     BallHitboxESP = false,
     BallHitboxESPTransparency = 0.5,
     BallHitboxESPColor = Color3.fromRGB(120, 255, 140),
+    HitboxESP = false,
+    HitboxESPTransparency = 0.7,
+    HitboxESPColor = Color3.fromRGB(120, 220, 160),
 }
 
 -- =============================================
@@ -74,7 +63,7 @@ pcall(function()
     if old then old:Destroy() end
 end)
 pcall(function()
-    local old = CoreGui:FindFirstChild("SOUHUB_BallHitboxESP")
+    local old = game:GetService("CoreGui"):FindFirstChild("SOUHUB_BallHitboxESP")
     if old then old:Destroy() end
 end)
 
@@ -86,7 +75,7 @@ local function tween(obj, time, props, style, dir)
 end
 
 -- =============================================
--- GUI (PlayerGui üzerinden - DÜZELTİLDİ)
+-- GUI
 -- =============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SOUHUB_Touchline"
@@ -97,11 +86,6 @@ ScreenGui.IgnoreGuiInset = true
 ScreenGui.Enabled = true
 ScreenGui.Parent = PlayerGui
 
-print("[SOU HUB] GUI parent:", ScreenGui.Parent:GetFullName())
-
--- =============================================
--- MAIN FRAME (DÜZELTİLDİ - Görünürlük artırıldı)
--- =============================================
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 620, 0, 480)
@@ -115,7 +99,6 @@ MainFrame.ZIndex = 100
 MainFrame.Parent = ScreenGui
 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
-
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Border
 mainStroke.Thickness = 1.5
@@ -129,7 +112,6 @@ DragHandle.AutoButtonColor = false
 DragHandle.ZIndex = 10
 DragHandle.Parent = MainFrame
 
--- Draggable
 local dragging, dragInput, dragStart, startPos
 DragHandle.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
@@ -195,9 +177,6 @@ closeBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
--- =============================================
--- CONTENT AREA
--- =============================================
 local ContentArea = Instance.new("Frame")
 ContentArea.Size = UDim2.new(1, -20, 1, -70)
 ContentArea.Position = UDim2.new(0, 10, 0, 60)
@@ -220,7 +199,6 @@ mainPage.Parent = ContentArea
 local layout = Instance.new("UIListLayout", mainPage)
 layout.SortOrder = Enum.SortOrder.LayoutOrder
 layout.Padding = UDim.new(0, 6)
-
 local pad = Instance.new("UIPadding", mainPage)
 pad.PaddingLeft = UDim.new(0, 4)
 pad.PaddingRight = UDim.new(0, 4)
@@ -497,24 +475,20 @@ end, 12)
 addLabel(mainPage, "BALL HITBOX ESP", 13)
 addToggle(mainPage, "Ball Hitbox ESP", false, function(v) Settings.BallHitboxESP = v end, 14, true)
 addSlider(mainPage, "Ball Hitbox Transparency", 0.1, 0.9, 0.5, function(v) Settings.BallHitboxESPTransparency = v end, 15)
-addCycleButton(mainPage, "Ball Hitbox Color", {"Green","Red","Cyan","Yellow","Purple","White"}, "Green", function(v)
-    local colors = {Green=Color3.fromRGB(120,255,140), Red=Color3.fromRGB(255,80,80), Cyan=Color3.fromRGB(100,220,255), Yellow=Color3.fromRGB(255,220,60), Purple=Color3.fromRGB(200,120,255), White=Color3.fromRGB(255,255,255)}
-    Settings.BallHitboxESPColor = colors[v] or Color3.fromRGB(120,255,140)
-end, 16)
 
-addLabel(mainPage, "HITBOX ESP", 17)
-addToggle(mainPage, "Hitbox ESP", false, function(v) Settings.HitboxESP = v end, 18, true)
-addSlider(mainPage, "Hitbox Transparency", 0.1, 0.9, 0.7, function(v) Settings.HitboxESPTransparency = v end, 19)
+addLabel(mainPage, "HITBOX ESP", 16)
+addToggle(mainPage, "Hitbox ESP", false, function(v) Settings.HitboxESP = v end, 17, true)
+addSlider(mainPage, "Hitbox Transparency", 0.1, 0.9, 0.7, function(v) Settings.HitboxESPTransparency = v end, 18)
 
-addLabel(mainPage, "GOAL AIMBOT", 20)
-addToggle(mainPage, "Goal Aimbot", false, function(v) Settings.GoalAimbot = v end, 21, true)
-addSlider(mainPage, "Aim Strength", 0.1, 1.0, 0.5, function(v) Settings.GoalAimStrength = v end, 22)
+addLabel(mainPage, "GOAL AIMBOT", 19)
+addToggle(mainPage, "Goal Aimbot", false, function(v) Settings.GoalAimbot = v end, 20, true)
+addSlider(mainPage, "Aim Strength", 0.1, 1.0, 0.5, function(v) Settings.GoalAimStrength = v end, 21)
 
-addLabel(mainPage, "GOALKEEPER", 23)
-addToggle(mainPage, "Auto Dive", false, function(v) Settings.AutoDive = v end, 24, true)
+addLabel(mainPage, "GOALKEEPER", 22)
+addToggle(mainPage, "Auto Dive", false, function(v) Settings.AutoDive = v end, 23, true)
 
-addLabel(mainPage, "WORLD", 25)
-addToggle(mainPage, "Fullbright", false, function(v) Settings.Fullbright = v end, 26, true)
+addLabel(mainPage, "WORLD", 24)
+addToggle(mainPage, "Fullbright", false, function(v) Settings.Fullbright = v end, 25, true)
 
 -- =============================================
 -- KEYBIND LISTENER
@@ -532,69 +506,105 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- =============================================
--- BALL & GOAL FINDER
+-- UNIVERSAL BALL FINDER (DÜZELTİLDİ)
 -- =============================================
+local cachedBall = nil
+local ballCacheTime = 0
+
+local function isBall(part)
+    if not part or not part:IsA("BasePart") then return false end
+    local name = part.Name:lower()
+    -- Top ismi kontrolü
+    if name == "ball" or name == "top" or name == "soccerball" or name == "football" then
+        return true
+    end
+    if name:find("ball") or name:find("top") then
+        return true
+    end
+    -- Shape kontrolü (top yuvarlak olur)
+    if part.Shape == Enum.PartType.Ball then
+        return true
+    end
+    -- Mesh kontrolü
+    if part:FindFirstChildOfClass("SpecialMesh") then
+        local mesh = part:FindFirstChildOfClass("SpecialMesh")
+        if mesh.MeshType == Enum.MeshType.Sphere then return true end
+    end
+    return false
+end
+
 local function getBall()
-    local ball = workspace:FindFirstChild("Ball")
-    if ball and ball:IsA("BasePart") then return ball end
-    ball = workspace:FindFirstChild("ball")
-    if ball and ball:IsA("BasePart") then return ball end
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj:IsA("BasePart") and (obj.Name:lower():find("ball") or obj.Name:lower():find("top")) then
+    local now = tick()
+    if cachedBall and cachedBall.Parent and (now - ballCacheTime) < 0.5 then
+        return cachedBall
+    end
+    
+    -- Önce workspace'te ara
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if isBall(obj) then
+            cachedBall = obj
+            ballCacheTime = now
             return obj
         end
     end
-    return nil
-end
-
-local function getGoal()
-    for _, obj in ipairs(workspace:GetChildren()) do
-        if obj.Name:lower():find("goal") or obj.Name:lower():find("kale") then
-            if obj:IsA("BasePart") then return obj end
-            local part = obj:FindFirstChildWhichIsA("BasePart")
-            if part then return part end
-        end
-    end
-    return nil
-end
-
--- =============================================
--- REACH & HITBOX
--- =============================================
-local originalBallSize = nil
-
-RunService.Heartbeat:Connect(function()
-    if Settings.Reach then
-        local char = LocalPlayer.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local ball = getBall()
-            if hrp and ball then
-                local dist = (hrp.Position - ball.Position).Magnitude
-                if dist <= Settings.ReachValue then
-                    -- Reach aktif
+    
+    -- Karakterlerin içinde ara
+    for _, plr in ipairs(Players:GetPlayers()) do
+        if plr.Character then
+            for _, obj in ipairs(plr.Character:GetDescendants()) do
+                if isBall(obj) then
+                    cachedBall = obj
+                    ballCacheTime = now
+                    return obj
                 end
             end
         end
     end
     
-    local ball = getBall()
-    if ball then
-        if Settings.BallHitbox then
-            if not originalBallSize then originalBallSize = ball.Size end
-            local s = Settings.BallSize
-            ball.Size = Vector3.new(s, s, s)
-        else
-            if originalBallSize then
-                ball.Size = originalBallSize
-                originalBallSize = nil
+    return nil
+end
+
+-- =============================================
+-- UNIVERSAL GOAL FINDER (DÜZELTİLDİ)
+-- =============================================
+local cachedGoal = nil
+local goalCacheTime = 0
+
+local function getGoal()
+    local now = tick()
+    if cachedGoal and cachedGoal.Parent and (now - goalCacheTime) < 1 then
+        return cachedGoal
+    end
+    
+    local bestGoal = nil
+    local bestScore = 0
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            local score = 0
+            if name == "goal" then score = 10
+            elseif name:find("goal") then score = 8
+            elseif name:find("kale") then score = 8
+            elseif name:find("net") then score = 5
+            elseif name:find("post") then score = 3
+            end
+            if score > bestScore then
+                bestScore = score
+                bestGoal = obj
             end
         end
     end
-end)
+    
+    if bestGoal then
+        cachedGoal = bestGoal
+        goalCacheTime = now
+    end
+    return bestGoal
+end
 
 -- =============================================
--- BALL ESP (DÜZELTİLDİ - Workspace'e parent'landı)
+-- BALL ESP
 -- =============================================
 local ballESPStorage = {}
 
@@ -607,7 +617,7 @@ local function createBallESP(ball)
     billboard.StudsOffset = Vector3.new(0, 2, 0)
     billboard.AlwaysOnTop = true
     billboard.Adornee = ball
-    billboard.Parent = ball -- KRİTİK: Ball'a parent'la, CoreGui'ye değil
+    billboard.Parent = ball
     
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 1, 0)
@@ -649,23 +659,33 @@ local function createBallESP(ball)
     ballESPStorage[ball] = {gui = billboard, box = box, nameLbl = nameLbl, distLbl = distLbl}
 end
 
-local function removeBallESP(ball)
-    if ballESPStorage[ball] then
-        pcall(function() ballESPStorage[ball].gui:Destroy() end)
-        ballESPStorage[ball] = nil
-    end
-end
-
 -- =============================================
--- BALL HITBOX ESP (DÜZELTİLDİ - Workspace'e parent'landı)
+-- BALL HITBOX ESP
 -- =============================================
 local ballHitboxBox = nil
+local ballHitboxAdornee = nil
 
-local function createBallHitboxESP()
+local function updateBallHitboxESP()
     local ball = getBall()
-    if not ball then return nil end
+    if not ball then
+        if ballHitboxBox and ballHitboxBox.Parent then
+            ballHitboxBox:Destroy()
+            ballHitboxBox = nil
+            ballHitboxAdornee = nil
+        end
+        return
+    end
     
-    if ballHitboxBox and ballHitboxBox.Parent then return ballHitboxBox end
+    if ballHitboxBox and ballHitboxBox.Parent and ballHitboxAdornee == ball then
+        ballHitboxBox.Size = ball.Size + Vector3.new(0.2, 0.2, 0.2)
+        ballHitboxBox.Color3 = Settings.BallHitboxESPColor
+        ballHitboxBox.Transparency = Settings.BallHitboxESPTransparency
+        return
+    end
+    
+    if ballHitboxBox and ballHitboxBox.Parent then
+        ballHitboxBox:Destroy()
+    end
     
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "SOUHUB_BallHitboxESP"
@@ -675,19 +695,19 @@ local function createBallHitboxESP()
     box.Size = ball.Size + Vector3.new(0.2, 0.2, 0.2)
     box.Color3 = Settings.BallHitboxESPColor
     box.Transparency = Settings.BallHitboxESPTransparency
-    box.Parent = ball -- KRİTİK: Ball'a parent'la
+    box.Parent = ball
     
     ballHitboxBox = box
-    return box
+    ballHitboxAdornee = ball
 end
 
 -- =============================================
--- HITBOX ESP (Karakterler - DÜZELTİLDİ)
+-- HITBOX ESP
 -- =============================================
 local hitboxESPStorage = {}
 
 local function createHitboxESP(part)
-    if hitboxESPStorage[part] then return end
+    if hitboxESPStorage[part] and hitboxESPStorage[part].Parent then return end
     
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "SOUHUB_HitboxESP"
@@ -697,10 +717,45 @@ local function createHitboxESP(part)
     box.Size = part.Size
     box.Color3 = Settings.HitboxESPColor
     box.Transparency = Settings.HitboxESPTransparency
-    box.Parent = part -- KRİTİK: Part'a parent'la
+    box.Parent = part
     
     hitboxESPStorage[part] = box
 end
+
+-- =============================================
+-- REACH & BALL HITBOX
+-- =============================================
+local originalBallSize = nil
+
+RunService.Heartbeat:Connect(function()
+    if Settings.Reach then
+        local char = LocalPlayer.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            local ball = getBall()
+            if hrp and ball then
+                local dist = (hrp.Position - ball.Position).Magnitude
+                if dist <= Settings.ReachValue then
+                    -- Reach aktif
+                end
+            end
+        end
+    end
+    
+    local ball = getBall()
+    if ball then
+        if Settings.BallHitbox then
+            if not originalBallSize then originalBallSize = ball.Size end
+            local s = Settings.BallSize
+            ball.Size = Vector3.new(s, s, s)
+        else
+            if originalBallSize then
+                ball.Size = originalBallSize
+                originalBallSize = nil
+            end
+        end
+    end
+end)
 
 -- =============================================
 -- RENDER LOOP
@@ -712,7 +767,7 @@ RunService.RenderStepped:Connect(function()
     if Settings.BallESP and ball then
         if not ballESPStorage[ball] then createBallESP(ball) end
         local data = ballESPStorage[ball]
-        if data then
+        if data and data.gui.Parent then
             data.box.BorderColor3 = Settings.BallESPColor
             data.nameLbl.TextColor3 = Settings.BallESPColor
             data.distLbl.TextColor3 = Settings.BallESPColor
@@ -734,18 +789,13 @@ RunService.RenderStepped:Connect(function()
     end
     
     -- Ball Hitbox ESP
-    if Settings.BallHitboxESP and ball then
-        local box = createBallHitboxESP()
-        if box then
-            box.Adornee = ball
-            box.Size = ball.Size + Vector3.new(0.2, 0.2, 0.2)
-            box.Color3 = Settings.BallHitboxESPColor
-            box.Transparency = Settings.BallHitboxESPTransparency
-        end
+    if Settings.BallHitboxESP then
+        updateBallHitboxESP()
     else
         if ballHitboxBox and ballHitboxBox.Parent then
             ballHitboxBox:Destroy()
             ballHitboxBox = nil
+            ballHitboxAdornee = nil
         end
     end
     
@@ -757,7 +807,7 @@ RunService.RenderStepped:Connect(function()
                 if hrp then
                     createHitboxESP(hrp)
                     local box = hitboxESPStorage[hrp]
-                    if box then
+                    if box and box.Parent then
                         box.Size = hrp.Size
                         box.Color3 = Settings.HitboxESPColor
                         box.Transparency = Settings.HitboxESPTransparency
@@ -831,7 +881,7 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- =============================================
--- GUI AÇ/KAPAT (RightShift)
+-- GUI AÇ/KAPAT
 -- =============================================
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
@@ -840,4 +890,5 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     end
 end)
 
-print("[SOU HUB] Hazir! GUI Ac/Kapat: RightShift")
+print("[SOU HUB] Hazir! GUI: RightShift")
+print("[SOU HUB] Top bulundu mu?:", getBall() and "EVET" or "HAYIR")
