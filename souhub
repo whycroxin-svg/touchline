@@ -1,38 +1,22 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION v2
+    SOU HUB - TOUCHLINE EDITION v2 (FIXED)
     Reach + Ball Hitbox + Goal Aimbot + Auto Dive
     Ball ESP + Hitbox ESP + Ball Hitbox ESP + Keybind Sistemi
-    ESC Fix + Hizli Leave Fix
 ]]
 
-print("[SOU HUB] Touchline Edition v2 yukleniyor...")
+print("[SOU HUB] Yukleniyor...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local GuiService = game:GetService("GuiService")
 local Lighting = game:GetService("Lighting")
-local Stats = game:GetService("Stats")
 local TweenService = game:GetService("TweenService")
-local VirtualInputManager = game:GetService("VirtualInputManager")
-local Camera = workspace.CurrentCamera
-local LocalPlayer = Players.LocalPlayer
-local Mouse = LocalPlayer:GetMouse()
+local CoreGui = game:GetService("CoreGui")
 
--- =============================================
--- GUI PARENT (DÜZELTİLDİ)
--- =============================================
-local function getGuiParent()
-    -- Öncelik: PlayerGui (her zaman çalışır)
-    local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
-    if playerGui then return playerGui end
-    
-    -- Yedek: CoreGui
-    local ok, coreGui = pcall(function() return game:GetService("CoreGui") end)
-    if ok and coreGui then return coreGui end
-    
-    return LocalPlayer:WaitForChild("PlayerGui")
-end
+local LocalPlayer = Players.LocalPlayer
+local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+local Mouse = LocalPlayer:GetMouse()
 
 -- =============================================
 -- THEME
@@ -48,13 +32,13 @@ local Theme = {
     Text = Color3.fromRGB(220, 235, 250),
     SubText = Color3.fromRGB(140, 165, 195),
     Border = Color3.fromRGB(45, 70, 105),
-    ToggleOn = Color3.fromRGB(120, 200, 255),
-    ToggleOff = Color3.fromRGB(50, 70, 100),
 }
 
 local OriginalLighting = {
-    Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient,
-    Brightness = Lighting.Brightness, FogEnd = Lighting.FogEnd,
+    Ambient = Lighting.Ambient,
+    OutdoorAmbient = Lighting.OutdoorAmbient,
+    Brightness = Lighting.Brightness,
+    FogEnd = Lighting.FogEnd,
 }
 
 -- =============================================
@@ -65,14 +49,12 @@ local Settings = {
     BallHitbox = false, BallSize = 2.0,
     GoalAimbot = false, GoalAimStrength = 0.5,
     AutoDive = false,
-    Prediction = false,
     Fullbright = false,
     
     BallESP = false,
     BallESPBox = true,
     BallESPName = true,
     BallESPDistance = true,
-    BallESPTracer = false,
     BallESPColor = Color3.fromRGB(255, 220, 60),
     
     HitboxESP = false,
@@ -82,29 +64,19 @@ local Settings = {
     BallHitboxESP = false,
     BallHitboxESPTransparency = 0.5,
     BallHitboxESPColor = Color3.fromRGB(120, 255, 140),
-    
-    Watermark = true,
-    GuiTransparency = 100, -- DÜZELTİLDİ: 250 -> 100 (daha görünür)
 }
-
--- =============================================
--- KEYBIND SYSTEM
--- =============================================
-local activeKeybindBtn = nil
-local keybindCallbacks = {}
-_G.SOUHUB_KeybindAssigners = _G.SOUHUB_KeybindAssigners or {}
 
 -- =============================================
 -- CLEANUP
 -- =============================================
-for _, loc in ipairs({game:GetService("CoreGui"), LocalPlayer:FindFirstChild("PlayerGui")}) do
-    pcall(function()
-        if loc then
-            local o = loc:FindFirstChild("SOUHUB_Touchline"); if o then o:Destroy() end
-            local o2 = loc:FindFirstChild("SOUHUB_Snow"); if o2 then o2:Destroy() end
-        end
-    end)
-end
+pcall(function()
+    local old = PlayerGui:FindFirstChild("SOUHUB_Touchline")
+    if old then old:Destroy() end
+end)
+pcall(function()
+    local old = CoreGui:FindFirstChild("SOUHUB_BallHitboxESP")
+    if old then old:Destroy() end
+end)
 
 local function tween(obj, time, props, style, dir)
     local info = TweenInfo.new(time or 0.2, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
@@ -114,155 +86,30 @@ local function tween(obj, time, props, style, dir)
 end
 
 -- =============================================
--- GUI (DÜZELTİLDİ)
+-- GUI (PlayerGui üzerinden - DÜZELTİLDİ)
 -- =============================================
-local guiParent = getGuiParent()
-
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SOUHUB_Touchline"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 ScreenGui.DisplayOrder = 999999
 ScreenGui.IgnoreGuiInset = true
-ScreenGui.Enabled = true -- DÜZELTİLDİ: Açıkça enabled yap
-pcall(function() ScreenGui.Parent = guiParent end)
+ScreenGui.Enabled = true
+ScreenGui.Parent = PlayerGui
 
-if not ScreenGui.Parent then
-    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
-end
-
-print("[SOU HUB] GUI parent:", ScreenGui.Parent and ScreenGui.Parent:GetFullName() or "nil")
+print("[SOU HUB] GUI parent:", ScreenGui.Parent:GetFullName())
 
 -- =============================================
--- KAR YAGISI (opsiyonel - hata verirse devre dışı)
+-- MAIN FRAME (DÜZELTİLDİ - Görünürlük artırıldı)
 -- =============================================
-pcall(function()
-    local snowGui = Instance.new("ScreenGui")
-    snowGui.Name = "SOUHUB_Snow"
-    snowGui.ResetOnSpawn = false
-    snowGui.DisplayOrder = 1
-    snowGui.IgnoreGuiInset = true
-    snowGui.Parent = guiParent
-
-    local snowContainer = Instance.new("Frame")
-    snowContainer.Size = UDim2.new(1, 0, 1, 0)
-    snowContainer.BackgroundTransparency = 1
-    snowContainer.Parent = snowGui
-
-    local function createSnowflake()
-        local sf = Instance.new("TextLabel")
-        sf.Size = UDim2.new(0, math.random(8, 18), 0, math.random(8, 18))
-        sf.Position = UDim2.new(math.random(), 0, -0.05, 0)
-        sf.BackgroundTransparency = 1
-        sf.Text = "❄"
-        sf.TextColor3 = Color3.fromRGB(255, 255, 255)
-        sf.TextSize = math.random(8, 18)
-        sf.TextTransparency = math.random(3, 7) / 10
-        sf.Font = Enum.Font.GothamBold
-        sf.Rotation = math.random(0, 360)
-        sf.Parent = snowContainer
-        local dur = math.random(6, 14)
-        local drift = math.random(-20, 20) / 100
-        tween(sf, dur, {Position = UDim2.new(sf.Position.X.Scale + drift, 0, 1.1, 0), Rotation = sf.Rotation + math.random(-180, 180)}, Enum.EasingStyle.Linear)
-        task.delay(dur, function() if sf and sf.Parent then sf:Destroy() end end)
-    end
-
-    task.spawn(function()
-        while snowContainer.Parent do
-            createSnowflake()
-            task.wait(math.random(5, 15) / 100)
-        end
-    end)
-end)
-
--- =============================================
--- TOAST
--- =============================================
-local toastContainer = Instance.new("Frame")
-toastContainer.Size = UDim2.new(0, 320, 1, -20)
-toastContainer.Position = UDim2.new(1, -340, 0, 10)
-toastContainer.BackgroundTransparency = 1
-toastContainer.ZIndex = 1000
-toastContainer.Parent = ScreenGui
-local toastLayout = Instance.new("UIListLayout", toastContainer)
-toastLayout.SortOrder = Enum.SortOrder.LayoutOrder
-toastLayout.Padding = UDim.new(0, 8)
-toastLayout.VerticalAlignment = Enum.VerticalAlignment.Top
-
-local function showToast(title, message, toastType)
-    toastType = toastType or "info"
-    local colors = {info = Theme.Accent, success = Color3.fromRGB(80, 200, 130), warning = Color3.fromRGB(230, 180, 60), error = Color3.fromRGB(220, 70, 80)}
-    local toast = Instance.new("Frame")
-    toast.Size = UDim2.new(0, 0, 0, 52)
-    toast.Position = UDim2.new(1, 20, 0, 0)
-    toast.BackgroundColor3 = Theme.Panel
-    toast.BackgroundTransparency = 0.05
-    toast.BorderSizePixel = 0
-    toast.ZIndex = 1001
-    toast.Parent = toastContainer
-    Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 6)
-    local stroke = Instance.new("UIStroke", toast)
-    stroke.Color = colors[toastType]; stroke.Thickness = 1.5; stroke.Transparency = 0.3
-    local bar = Instance.new("Frame")
-    bar.Size = UDim2.new(0, 3, 1, 0); bar.BackgroundColor3 = colors[toastType]
-    bar.BorderSizePixel = 0; bar.ZIndex = 1002; bar.Parent = toast
-    local titleLbl = Instance.new("TextLabel")
-    titleLbl.Size = UDim2.new(1, -24, 0, 18); titleLbl.Position = UDim2.new(0, 16, 0, 10)
-    titleLbl.BackgroundTransparency = 1; titleLbl.Text = title
-    titleLbl.TextColor3 = Theme.Text; titleLbl.TextSize = 12
-    titleLbl.Font = Enum.Font.GothamBold; titleLbl.TextXAlignment = Enum.TextXAlignment.Left
-    titleLbl.ZIndex = 1002; titleLbl.Parent = toast
-    local msgLbl = Instance.new("TextLabel")
-    msgLbl.Size = UDim2.new(1, -24, 0, 16); msgLbl.Position = UDim2.new(0, 16, 0, 28)
-    msgLbl.BackgroundTransparency = 1; msgLbl.Text = message
-    msgLbl.TextColor3 = Theme.SubText; msgLbl.TextSize = 10
-    msgLbl.Font = Enum.Font.Gotham; msgLbl.TextXAlignment = Enum.TextXAlignment.Left
-    msgLbl.ZIndex = 1002; msgLbl.Parent = toast
-    tween(toast, 0.4, {Size = UDim2.new(0, 320, 0, 52), Position = UDim2.new(0, 0, 0, 0)}, Enum.EasingStyle.Quint)
-    task.delay(3, function()
-        tween(toast, 0.3, {Position = UDim2.new(1, 20, 0, 0)})
-        tween(toast, 0.3, {BackgroundTransparency = 1})
-        toast:Destroy()
-    end)
-end
-
--- =============================================
--- DRAGGABLE
--- =============================================
-local function makeDraggable(frame, handle)
-    local dragging, dragInput, dragStart, startPos
-    handle = handle or frame
-    handle.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
-            dragging = true; dragStart = input.Position; startPos = frame.Position
-            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
-        end
-    end)
-    handle.InputChanged:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
-    end)
-    UserInputService.InputChanged:Connect(function(input)
-        if input == dragInput and dragging then
-            local d = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
-        end
-    end)
-end
-
--- =============================================
--- MAIN FRAME (DÜZELTİLDİ)
--- =============================================
--- DÜZELTİLDİ: Transparency daha düşük yapıldı (daha görünür)
-local InitialTransparency = math.clamp(1 - (Settings.GuiTransparency / 500), 0, 0.4)
-
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
 MainFrame.Size = UDim2.new(0, 620, 0, 480)
 MainFrame.Position = UDim2.new(0.5, -310, 0.5, -240)
 MainFrame.BackgroundColor3 = Theme.Bg
-MainFrame.BackgroundTransparency = InitialTransparency
+MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 0
-MainFrame.Active = true -- DÜZELTİLDİ: true yapıldı (drag için)
+MainFrame.Active = true
 MainFrame.Visible = true
 MainFrame.ZIndex = 100
 MainFrame.Parent = ScreenGui
@@ -272,63 +119,134 @@ Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Theme.Border
 mainStroke.Thickness = 1.5
-mainStroke.Transparency = InitialTransparency + 0.2
-
-local topAccent = Instance.new("Frame")
-topAccent.Size = UDim2.new(0, 120, 0, 1)
-topAccent.Position = UDim2.new(0, 24, 0, 1)
-topAccent.BackgroundColor3 = Theme.Accent
-topAccent.BorderSizePixel = 0
-topAccent.ZIndex = 5
-topAccent.Parent = MainFrame
+mainStroke.Transparency = 0.2
 
 local DragHandle = Instance.new("TextButton")
-DragHandle.Size = UDim2.new(1, 0, 0, 50); DragHandle.BackgroundTransparency = 1
-DragHandle.Text = ""; DragHandle.AutoButtonColor = false; DragHandle.ZIndex = 10; DragHandle.Parent = MainFrame
-makeDraggable(MainFrame, DragHandle)
+DragHandle.Size = UDim2.new(1, 0, 0, 50)
+DragHandle.BackgroundTransparency = 1
+DragHandle.Text = ""
+DragHandle.AutoButtonColor = false
+DragHandle.ZIndex = 10
+DragHandle.Parent = MainFrame
 
-local mainGradient = Instance.new("UIGradient", MainFrame)
-mainGradient.Color = ColorSequence.new({
-    ColorSequenceKeypoint.new(0, Color3.fromRGB(Theme.Bg.R*255 + 6, Theme.Bg.G*255 + 6, Theme.Bg.B*255 + 6)),
-    ColorSequenceKeypoint.new(1, Theme.Bg),
-})
-mainGradient.Rotation = 135
+-- Draggable
+local dragging, dragInput, dragStart, startPos
+DragHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = MainFrame.Position
+    end
+end)
+DragHandle.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+UserInputService.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local d = input.Position - dragStart
+        MainFrame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+    end
+end)
+UserInputService.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then dragging = false end
+end)
 
 local tl = Instance.new("TextLabel")
-tl.Size = UDim2.new(1, 0, 0, 22); tl.Position = UDim2.new(0, 24, 0, 14)
-tl.BackgroundTransparency = 1; tl.Text = "❄ SOU HUB"; tl.TextColor3 = Theme.Text
-tl.TextSize = 18; tl.Font = Enum.Font.GothamBold
-tl.TextXAlignment = Enum.TextXAlignment.Left; tl.ZIndex = 5; tl.Parent = MainFrame
+tl.Size = UDim2.new(1, 0, 0, 22)
+tl.Position = UDim2.new(0, 24, 0, 14)
+tl.BackgroundTransparency = 1
+tl.Text = "SOU HUB"
+tl.TextColor3 = Theme.Text
+tl.TextSize = 18
+tl.Font = Enum.Font.GothamBold
+tl.TextXAlignment = Enum.TextXAlignment.Left
+tl.ZIndex = 5
+tl.Parent = MainFrame
 
 local cl = Instance.new("TextLabel")
-cl.Size = UDim2.new(1, 0, 0, 14); cl.Position = UDim2.new(0, 24, 0, 34)
-cl.BackgroundTransparency = 1; cl.Text = "TOUCHLINE EDITION v2"; cl.TextColor3 = Theme.SubText
-cl.TextSize = 9; cl.Font = Enum.Font.GothamSemibold
-cl.TextXAlignment = Enum.TextXAlignment.Left; cl.ZIndex = 5; cl.Parent = MainFrame
+cl.Size = UDim2.new(1, 0, 0, 14)
+cl.Position = UDim2.new(0, 24, 0, 34)
+cl.BackgroundTransparency = 1
+cl.Text = "TOUCHLINE EDITION v2"
+cl.TextColor3 = Theme.SubText
+cl.TextSize = 9
+cl.Font = Enum.Font.GothamSemibold
+cl.TextXAlignment = Enum.TextXAlignment.Left
+cl.ZIndex = 5
+cl.Parent = MainFrame
 
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 28, 0, 28)
 closeBtn.Position = UDim2.new(1, -38, 0, 12)
 closeBtn.BackgroundColor3 = Theme.Button
 closeBtn.BackgroundTransparency = 0.3
-closeBtn.BorderSizePixel = 0; closeBtn.Text = "×"
-closeBtn.TextColor3 = Theme.SubText; closeBtn.TextSize = 20
-closeBtn.Font = Enum.Font.Gotham; closeBtn.AutoButtonColor = false
-closeBtn.ZIndex = 11; closeBtn.Parent = MainFrame
+closeBtn.BorderSizePixel = 0
+closeBtn.Text = "×"
+closeBtn.TextColor3 = Theme.SubText
+closeBtn.TextSize = 20
+closeBtn.Font = Enum.Font.Gotham
+closeBtn.AutoButtonColor = false
+closeBtn.ZIndex = 11
+closeBtn.Parent = MainFrame
 Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
-closeBtn.MouseEnter:Connect(function()
-    tween(closeBtn, 0.15, {BackgroundColor3 = Color3.fromRGB(180, 50, 50), BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255,255,255)})
-end)
-closeBtn.MouseLeave:Connect(function()
-    tween(closeBtn, 0.15, {BackgroundColor3 = Theme.Button, BackgroundTransparency = 0.3, TextColor3 = Theme.SubText})
-end)
 closeBtn.MouseButton1Click:Connect(function()
     MainFrame.Visible = false
 end)
 
 -- =============================================
+-- CONTENT AREA
+-- =============================================
+local ContentArea = Instance.new("Frame")
+ContentArea.Size = UDim2.new(1, -20, 1, -70)
+ContentArea.Position = UDim2.new(0, 10, 0, 60)
+ContentArea.BackgroundTransparency = 1
+ContentArea.ZIndex = 3
+ContentArea.Parent = MainFrame
+
+local mainPage = Instance.new("ScrollingFrame")
+mainPage.Size = UDim2.new(1, 0, 1, 0)
+mainPage.BackgroundTransparency = 1
+mainPage.BorderSizePixel = 0
+mainPage.ScrollBarThickness = 3
+mainPage.ScrollBarImageColor3 = Theme.Accent
+mainPage.CanvasSize = UDim2.new(0, 0, 0, 0)
+mainPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
+mainPage.ZIndex = 2
+mainPage.Active = true
+mainPage.Parent = ContentArea
+
+local layout = Instance.new("UIListLayout", mainPage)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 6)
+
+local pad = Instance.new("UIPadding", mainPage)
+pad.PaddingLeft = UDim.new(0, 4)
+pad.PaddingRight = UDim.new(0, 4)
+pad.PaddingTop = UDim.new(0, 4)
+
+-- =============================================
 -- UI BUILDERS
 -- =============================================
+local activeKeybindBtn = nil
+local keybindCallbacks = {}
+_G.SOUHUB_KeybindAssigners = {}
+
+local function addLabel(page, text, order)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -16, 0, 22)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = Theme.Accent
+    lbl.TextSize = 10
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.LayoutOrder = order or 0
+    lbl.ZIndex = 3
+    lbl.Parent = page
+end
+
 local function addToggle(parent, name, default, callback, order, withKeybind)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, -16, 0, 36)
@@ -399,9 +317,6 @@ local function addToggle(parent, name, default, callback, order, withKeybind)
         kbBtn.ZIndex = 4
         kbBtn.Parent = row
         Instance.new("UICorner", kbBtn).CornerRadius = UDim.new(0, 4)
-        local kbStroke = Instance.new("UIStroke", kbBtn)
-        kbStroke.Color = Theme.Border
-        kbStroke.Thickness = 1
         
         local assignedKey = nil
         
@@ -410,32 +325,25 @@ local function addToggle(parent, name, default, callback, order, withKeybind)
                 keybindCallbacks[assignedKey] = nil
                 assignedKey = nil
             end
-            
             if activeKeybindBtn == kbBtn then
                 activeKeybindBtn = nil
                 kbBtn.Text = "[ - ]"
                 kbBtn.TextColor3 = Theme.SubText
-                tween(kbBtn, 0.2, {BackgroundTransparency = 0.5})
                 return
             end
-            
             if activeKeybindBtn then
                 activeKeybindBtn.Text = "[ - ]"
                 activeKeybindBtn.TextColor3 = Theme.SubText
-                tween(activeKeybindBtn, 0.2, {BackgroundTransparency = 0.5})
             end
-            
             activeKeybindBtn = kbBtn
             kbBtn.Text = "[...]"
             kbBtn.TextColor3 = Color3.fromRGB(255, 200, 60)
-            tween(kbBtn, 0.2, {BackgroundTransparency = 0.2})
         end)
         
         _G.SOUHUB_KeybindAssigners[kbBtn] = function(keyCode)
             assignedKey = keyCode
             kbBtn.Text = "[" .. keyCode.Name .. "]"
             kbBtn.TextColor3 = Color3.fromRGB(120, 220, 160)
-            tween(kbBtn, 0.15, {BackgroundTransparency = 0.3})
             keybindCallbacks[keyCode] = doToggle
             activeKeybindBtn = nil
         end
@@ -495,16 +403,6 @@ local function addSlider(parent, name, min, max, default, callback, order)
     fill.Parent = bg
     Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
     
-    local knob = Instance.new("Frame")
-    knob.Size = UDim2.new(0, 14, 0, 14)
-    knob.AnchorPoint = Vector2.new(0.5, 0.5)
-    knob.Position = UDim2.new((default-min)/(max-min), 0, 0.5, 0)
-    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
-    knob.BorderSizePixel = 0
-    knob.ZIndex = 4
-    knob.Parent = bg
-    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
-    
     local value = default
     local sliding = false
     local function update(px)
@@ -513,32 +411,19 @@ local function addSlider(parent, name, min, max, default, callback, order)
         local p = math.clamp((px - ax) / as, 0, 1)
         value = min + (max - min) * p
         fill.Size = UDim2.new(p, 0, 1, 0)
-        knob.Position = UDim2.new(p, 0, 0.5, 0)
         valueLbl.Text = string.format("%.2f", value)
         if callback then callback(value) end
     end
     bg.MouseButton1Down:Connect(function(x) sliding = true; update(x) end)
     UserInputService.InputChanged:Connect(function(input)
-        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then update(input.Position.X) end
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then
+            update(input.Position.X)
+        end
     end)
     UserInputService.InputEnded:Connect(function(input)
         if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
     end)
     return function() return value end
-end
-
-local function addLabel(page, text, order)
-    local lbl = Instance.new("TextLabel")
-    lbl.Size = UDim2.new(1, -16, 0, 22)
-    lbl.BackgroundTransparency = 1
-    lbl.Text = text
-    lbl.TextColor3 = Theme.Accent
-    lbl.TextSize = 10
-    lbl.Font = Enum.Font.GothamBold
-    lbl.TextXAlignment = Enum.TextXAlignment.Left
-    lbl.LayoutOrder = order or 0
-    lbl.ZIndex = 3
-    lbl.Parent = page
 end
 
 local function addCycleButton(page, name, options, default, callback, order)
@@ -555,7 +440,6 @@ local function addCycleButton(page, name, options, default, callback, order)
     btn.ZIndex = 3
     btn.Parent = page
     Instance.new("UICorner", btn).CornerRadius = UDim.new(0,5)
-    local s = Instance.new("UIStroke", btn); s.Color = Theme.Border; s.Thickness = 1
     
     local nameLbl = Instance.new("TextLabel")
     nameLbl.Size = UDim2.new(0.5, 0, 1, 0)
@@ -590,75 +474,47 @@ local function addCycleButton(page, name, options, default, callback, order)
 end
 
 -- =============================================
--- CONTENT AREA
+-- UI ELEMENTS
 -- =============================================
-local ContentArea = Instance.new("Frame")
-ContentArea.Size = UDim2.new(1, -20, 1, -70)
-ContentArea.Position = UDim2.new(0, 10, 0, 60)
-ContentArea.BackgroundTransparency = 1
-ContentArea.ZIndex = 3
-ContentArea.Parent = MainFrame
+addLabel(mainPage, "BALL CONTROL", 1)
+addToggle(mainPage, "Reach", false, function(v) Settings.Reach = v end, 2, true)
+addSlider(mainPage, "Reach Distance", 5, 100, 30, function(v) Settings.ReachValue = v end, 3)
 
-local mainPage = Instance.new("ScrollingFrame")
-mainPage.Size = UDim2.new(1, 0, 1, 0)
-mainPage.BackgroundTransparency = 1
-mainPage.BorderSizePixel = 0
-mainPage.ScrollBarThickness = 3
-mainPage.ScrollBarImageColor3 = Theme.Accent
-mainPage.CanvasSize = UDim2.new(0, 0, 0, 0)
-mainPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
-mainPage.ZIndex = 2
-mainPage.Active = true
-mainPage.Parent = ContentArea
+addLabel(mainPage, "BALL HITBOX", 4)
+addToggle(mainPage, "Ball Hitbox", false, function(v) Settings.BallHitbox = v end, 5, true)
+addSlider(mainPage, "Ball Size", 1.0, 5.0, 2.0, function(v) Settings.BallSize = v end, 6)
 
-local layout = Instance.new("UIListLayout", mainPage)
-layout.SortOrder = Enum.SortOrder.LayoutOrder
-layout.Padding = UDim.new(0, 6)
-local pad = Instance.new("UIPadding", mainPage)
-pad.PaddingLeft = UDim.new(0, 4)
-pad.PaddingRight = UDim.new(0, 4)
-pad.PaddingTop = UDim.new(0, 4)
-
-addLabel(mainPage, "⚽ BALL CONTROL", 1)
-local getReach = addToggle(mainPage, "Reach", false, function(v) Settings.Reach = v end, 2, true)
-local getReachValue = addSlider(mainPage, "Reach Distance", 5, 100, 30, function(v) Settings.ReachValue = v end, 3)
-
-addLabel(mainPage, "⚽ BALL HITBOX", 4)
-local getBallHitbox = addToggle(mainPage, "Ball Hitbox", false, function(v) Settings.BallHitbox = v end, 5, true)
-local getBallSize = addSlider(mainPage, "Ball Size", 1.0, 5.0, 2.0, function(v) Settings.BallSize = v end, 6)
-
-addLabel(mainPage, "🎯 BALL ESP", 7)
-local getBallESP = addToggle(mainPage, "Ball ESP", false, function(v) Settings.BallESP = v end, 8, true)
-local getBallESPBox = addToggle(mainPage, "  Box", true, function(v) Settings.BallESPBox = v end, 9, false)
-local getBallESPName = addToggle(mainPage, "  Name", true, function(v) Settings.BallESPName = v end, 10, false)
-local getBallESPDistance = addToggle(mainPage, "  Distance", true, function(v) Settings.BallESPDistance = v end, 11, false)
-local getBallESPTracer = addToggle(mainPage, "  Tracer", false, function(v) Settings.BallESPTracer = v end, 12, false)
-local getBallESPColor = addCycleButton(mainPage, "ESP Color", {"Yellow","Red","Cyan","Green","Purple","White"}, "Yellow", function(v)
+addLabel(mainPage, "BALL ESP", 7)
+addToggle(mainPage, "Ball ESP", false, function(v) Settings.BallESP = v end, 8, true)
+addToggle(mainPage, "  Box", true, function(v) Settings.BallESPBox = v end, 9, false)
+addToggle(mainPage, "  Name", true, function(v) Settings.BallESPName = v end, 10, false)
+addToggle(mainPage, "  Distance", true, function(v) Settings.BallESPDistance = v end, 11, false)
+addCycleButton(mainPage, "ESP Color", {"Yellow","Red","Cyan","Green","Purple","White"}, "Yellow", function(v)
     local colors = {Yellow=Color3.fromRGB(255,220,60), Red=Color3.fromRGB(255,80,80), Cyan=Color3.fromRGB(100,220,255), Green=Color3.fromRGB(100,255,140), Purple=Color3.fromRGB(200,120,255), White=Color3.fromRGB(255,255,255)}
     Settings.BallESPColor = colors[v] or Color3.fromRGB(255,220,60)
-end, 13)
+end, 12)
 
-addLabel(mainPage, "📦 BALL HITBOX ESP", 14)
-local getBallHitboxESP = addToggle(mainPage, "Ball Hitbox ESP", false, function(v) Settings.BallHitboxESP = v end, 15, true)
-local getBallHitboxTransparency = addSlider(mainPage, "Ball Hitbox Transparency", 0.1, 0.9, 0.5, function(v) Settings.BallHitboxESPTransparency = v end, 16)
-local getBallHitboxColor = addCycleButton(mainPage, "Ball Hitbox Color", {"Green","Red","Cyan","Yellow","Purple","White"}, "Green", function(v)
+addLabel(mainPage, "BALL HITBOX ESP", 13)
+addToggle(mainPage, "Ball Hitbox ESP", false, function(v) Settings.BallHitboxESP = v end, 14, true)
+addSlider(mainPage, "Ball Hitbox Transparency", 0.1, 0.9, 0.5, function(v) Settings.BallHitboxESPTransparency = v end, 15)
+addCycleButton(mainPage, "Ball Hitbox Color", {"Green","Red","Cyan","Yellow","Purple","White"}, "Green", function(v)
     local colors = {Green=Color3.fromRGB(120,255,140), Red=Color3.fromRGB(255,80,80), Cyan=Color3.fromRGB(100,220,255), Yellow=Color3.fromRGB(255,220,60), Purple=Color3.fromRGB(200,120,255), White=Color3.fromRGB(255,255,255)}
     Settings.BallHitboxESPColor = colors[v] or Color3.fromRGB(120,255,140)
-end, 17)
+end, 16)
 
-addLabel(mainPage, "📦 HITBOX ESP", 18)
-local getHitboxESP = addToggle(mainPage, "Hitbox ESP", false, function(v) Settings.HitboxESP = v end, 19, true)
-local getHitboxTransparency = addSlider(mainPage, "Hitbox Transparency", 0.1, 0.9, 0.7, function(v) Settings.HitboxESPTransparency = v end, 20)
+addLabel(mainPage, "HITBOX ESP", 17)
+addToggle(mainPage, "Hitbox ESP", false, function(v) Settings.HitboxESP = v end, 18, true)
+addSlider(mainPage, "Hitbox Transparency", 0.1, 0.9, 0.7, function(v) Settings.HitboxESPTransparency = v end, 19)
 
-addLabel(mainPage, "🥅 GOAL AIMBOT", 21)
-local getGoalAimbot = addToggle(mainPage, "Goal Aimbot", false, function(v) Settings.GoalAimbot = v end, 22, true)
-local getGoalStrength = addSlider(mainPage, "Aim Strength", 0.1, 1.0, 0.5, function(v) Settings.GoalAimStrength = v end, 23)
+addLabel(mainPage, "GOAL AIMBOT", 20)
+addToggle(mainPage, "Goal Aimbot", false, function(v) Settings.GoalAimbot = v end, 21, true)
+addSlider(mainPage, "Aim Strength", 0.1, 1.0, 0.5, function(v) Settings.GoalAimStrength = v end, 22)
 
-addLabel(mainPage, "🧤 GOALKEEPER", 24)
-local getAutoDive = addToggle(mainPage, "Auto Dive", false, function(v) Settings.AutoDive = v end, 25, true)
+addLabel(mainPage, "GOALKEEPER", 23)
+addToggle(mainPage, "Auto Dive", false, function(v) Settings.AutoDive = v end, 24, true)
 
-addLabel(mainPage, "🌍 WORLD", 26)
-local getFullbright = addToggle(mainPage, "Fullbright", false, function(v) Settings.Fullbright = v end, 27, true)
+addLabel(mainPage, "WORLD", 25)
+addToggle(mainPage, "Fullbright", false, function(v) Settings.Fullbright = v end, 26, true)
 
 -- =============================================
 -- KEYBIND LISTENER
@@ -676,7 +532,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- =============================================
--- TOP/KALE BULMA
+-- BALL & GOAL FINDER
 -- =============================================
 local function getBall()
     local ball = workspace:FindFirstChild("Ball")
@@ -703,36 +559,10 @@ local function getGoal()
 end
 
 -- =============================================
--- BALL HITBOX ESP RENDER
+-- REACH & HITBOX
 -- =============================================
-local ballHitboxESPStorage = {}
+local originalBallSize = nil
 
-local function getOrCreateBallHitboxESP()
-    local ball = getBall()
-    if not ball then return nil end
-    
-    local key = "ball_hitbox_esp"
-    if ballHitboxESPStorage[key] and ballHitboxESPStorage[key].Parent then
-        return ballHitboxESPStorage[key]
-    end
-    
-    local box = Instance.new("BoxHandleAdornment")
-    box.Name = "SOUHUB_BallHitboxESP"
-    box.Adornee = ball
-    box.AlwaysOnTop = true
-    box.ZIndex = 5
-    box.Size = ball.Size + Vector3.new(0.2, 0.2, 0.2)
-    box.Color3 = Settings.BallHitboxESPColor
-    box.Transparency = Settings.BallHitboxESPTransparency
-    box.Parent = game:GetService("CoreGui")
-    
-    ballHitboxESPStorage[key] = box
-    return box
-end
-
--- =============================================
--- REACH
--- =============================================
 RunService.Heartbeat:Connect(function()
     if Settings.Reach then
         local char = LocalPlayer.Character
@@ -747,37 +577,29 @@ RunService.Heartbeat:Connect(function()
             end
         end
     end
-end)
-
--- =============================================
--- BALL HITBOX
--- =============================================
-local originalBallSize = nil
-
-RunService.Heartbeat:Connect(function()
+    
     local ball = getBall()
-    if not ball then return end
-    if Settings.BallHitbox then
-        if not originalBallSize then originalBallSize = ball.Size end
-        local s = Settings.BallSize
-        ball.Size = Vector3.new(s, s, s)
-        ball.CanCollide = true
-    else
-        if originalBallSize then
-            ball.Size = originalBallSize
-            originalBallSize = nil
+    if ball then
+        if Settings.BallHitbox then
+            if not originalBallSize then originalBallSize = ball.Size end
+            local s = Settings.BallSize
+            ball.Size = Vector3.new(s, s, s)
+        else
+            if originalBallSize then
+                ball.Size = originalBallSize
+                originalBallSize = nil
+            end
         end
     end
 end)
 
 -- =============================================
--- BALL ESP RENDER
+-- BALL ESP (DÜZELTİLDİ - Workspace'e parent'landı)
 -- =============================================
 local ballESPStorage = {}
 
-local function createBallESP()
-    local ball = getBall()
-    if not ball then return end
+local function createBallESP(ball)
+    if ballESPStorage[ball] then return end
     
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "SOUHUB_BallESP"
@@ -785,7 +607,7 @@ local function createBallESP()
     billboard.StudsOffset = Vector3.new(0, 2, 0)
     billboard.AlwaysOnTop = true
     billboard.Adornee = ball
-    billboard.Parent = game:GetService("CoreGui")
+    billboard.Parent = ball -- KRİTİK: Ball'a parent'la, CoreGui'ye değil
     
     local frame = Instance.new("Frame")
     frame.Size = UDim2.new(1, 0, 1, 0)
@@ -805,7 +627,7 @@ local function createBallESP()
     nameLbl.Size = UDim2.new(1, 0, 0, 16)
     nameLbl.Position = UDim2.new(0, 0, 0, -18)
     nameLbl.BackgroundTransparency = 1
-    nameLbl.Text = "⚽ BALL"
+    nameLbl.Text = "BALL"
     nameLbl.TextColor3 = Settings.BallESPColor
     nameLbl.TextSize = 12
     nameLbl.Font = Enum.Font.GothamBold
@@ -835,11 +657,38 @@ local function removeBallESP(ball)
 end
 
 -- =============================================
--- HITBOX ESP RENDER
+-- BALL HITBOX ESP (DÜZELTİLDİ - Workspace'e parent'landı)
+-- =============================================
+local ballHitboxBox = nil
+
+local function createBallHitboxESP()
+    local ball = getBall()
+    if not ball then return nil end
+    
+    if ballHitboxBox and ballHitboxBox.Parent then return ballHitboxBox end
+    
+    local box = Instance.new("BoxHandleAdornment")
+    box.Name = "SOUHUB_BallHitboxESP"
+    box.Adornee = ball
+    box.AlwaysOnTop = true
+    box.ZIndex = 5
+    box.Size = ball.Size + Vector3.new(0.2, 0.2, 0.2)
+    box.Color3 = Settings.BallHitboxESPColor
+    box.Transparency = Settings.BallHitboxESPTransparency
+    box.Parent = ball -- KRİTİK: Ball'a parent'la
+    
+    ballHitboxBox = box
+    return box
+end
+
+-- =============================================
+-- HITBOX ESP (Karakterler - DÜZELTİLDİ)
 -- =============================================
 local hitboxESPStorage = {}
 
 local function createHitboxESP(part)
+    if hitboxESPStorage[part] then return end
+    
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "SOUHUB_HitboxESP"
     box.Adornee = part
@@ -848,17 +697,20 @@ local function createHitboxESP(part)
     box.Size = part.Size
     box.Color3 = Settings.HitboxESPColor
     box.Transparency = Settings.HitboxESPTransparency
-    box.Parent = game:GetService("CoreGui")
+    box.Parent = part -- KRİTİK: Part'a parent'la
+    
     hitboxESPStorage[part] = box
 end
 
 -- =============================================
--- MAIN RENDER LOOP
+-- RENDER LOOP
 -- =============================================
 RunService.RenderStepped:Connect(function()
     local ball = getBall()
+    
+    -- Ball ESP
     if Settings.BallESP and ball then
-        if not ballESPStorage[ball] then createBallESP() end
+        if not ballESPStorage[ball] then createBallESP(ball) end
         local data = ballESPStorage[ball]
         if data then
             data.box.BorderColor3 = Settings.BallESPColor
@@ -881,27 +733,29 @@ RunService.RenderStepped:Connect(function()
         ballESPStorage = {}
     end
     
+    -- Ball Hitbox ESP
     if Settings.BallHitboxESP and ball then
-        local box = getOrCreateBallHitboxESP()
+        local box = createBallHitboxESP()
         if box then
             box.Adornee = ball
             box.Size = ball.Size + Vector3.new(0.2, 0.2, 0.2)
             box.Color3 = Settings.BallHitboxESPColor
             box.Transparency = Settings.BallHitboxESPTransparency
-            box.Visible = true
         end
     else
-        for _, box in pairs(ballHitboxESPStorage) do
-            if box and box.Parent then box.Visible = false end
+        if ballHitboxBox and ballHitboxBox.Parent then
+            ballHitboxBox:Destroy()
+            ballHitboxBox = nil
         end
     end
     
+    -- Hitbox ESP (Karakterler)
     if Settings.HitboxESP then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    if not hitboxESPStorage[hrp] then createHitboxESP(hrp) end
+                    createHitboxESP(hrp)
                     local box = hitboxESPStorage[hrp]
                     if box then
                         box.Size = hrp.Size
@@ -920,7 +774,7 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- =============================================
--- GOAL AIMBOT
+-- GOAL AIMBOT & AUTO DIVE
 -- =============================================
 RunService.RenderStepped:Connect(function()
     if not Settings.GoalAimbot then return end
@@ -936,15 +790,10 @@ RunService.RenderStepped:Connect(function()
     local dist = (hrp.Position - ball.Position).Magnitude
     if dist < 30 then
         local targetCF = CFrame.new(ball.Position, goal.Position)
-        local currentCF = ball.CFrame
-        local newCF = currentCF:Lerp(targetCF, Settings.GoalAimStrength * 0.1)
-        ball.CFrame = newCF
+        ball.CFrame = ball.CFrame:Lerp(targetCF, Settings.GoalAimStrength * 0.1)
     end
 end)
 
--- =============================================
--- AUTO DIVE
--- =============================================
 RunService.Heartbeat:Connect(function()
     if not Settings.AutoDive then return end
     local ball = getBall()
@@ -982,32 +831,13 @@ RunService.Heartbeat:Connect(function()
 end)
 
 -- =============================================
--- ESC FIX
+-- GUI AÇ/KAPAT (RightShift)
 -- =============================================
-pcall(function()
-    GuiService:SetMenuIsOpen(false)
-    GuiService.MenuOpened:Connect(function()
-        GuiService:SetMenuIsOpen(false)
-    end)
-end)
-
--- =============================================
--- INIT
--- =============================================
-showToast("SOU HUB", "Touchline Edition v2 yüklendi!", "success")
-task.wait(0.5)
-showToast("Ball Hitbox ESP", "Yeni özellik eklendi!", "info")
-
--- Toggle tuşu (RightShift veya K ile GUI aç/kapat)
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.RightShift or input.KeyCode == Enum.KeyCode.K then
+    if input.KeyCode == Enum.KeyCode.RightShift then
         MainFrame.Visible = not MainFrame.Visible
-        showToast("SOU HUB", MainFrame.Visible and "GUI açıldı" or "GUI kapatıldı", "info")
     end
 end)
 
-print("[SOU HUB] Touchline Edition v2 hazır!")
-print("[SOU HUB] GUI Parent:", ScreenGui.Parent and ScreenGui.Parent:GetFullName() or "YOK")
-print("[SOU HUB] MainFrame Visible:", MainFrame.Visible)
-print("[SOU HUB] GUI Aç/Kapat: RightShift veya K")
+print("[SOU HUB] Hazir! GUI Ac/Kapat: RightShift")
