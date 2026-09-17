@@ -19,18 +19,18 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
+-- =============================================
+-- GUI PARENT (DÜZELTİLDİ)
+-- =============================================
 local function getGuiParent()
-    if gethui then return gethui() end
-    if syn and syn.protect_gui then
-        local sg = Instance.new("ScreenGui")
-        syn.protect_gui(sg)
-        sg.Parent = game:GetService("CoreGui")
-        return sg
-    end
-    local ok = pcall(function()
-        local t = Instance.new("ScreenGui"); t.Parent = game:GetService("CoreGui"); t:Destroy()
-    end)
-    if ok then return game:GetService("CoreGui") end
+    -- Öncelik: PlayerGui (her zaman çalışır)
+    local playerGui = LocalPlayer:WaitForChild("PlayerGui", 5)
+    if playerGui then return playerGui end
+    
+    -- Yedek: CoreGui
+    local ok, coreGui = pcall(function() return game:GetService("CoreGui") end)
+    if ok and coreGui then return coreGui end
+    
     return LocalPlayer:WaitForChild("PlayerGui")
 end
 
@@ -61,7 +61,6 @@ local OriginalLighting = {
 -- SETTINGS
 -- =============================================
 local Settings = {
-    -- Ball Control
     Reach = false, ReachValue = 30,
     BallHitbox = false, BallSize = 2.0,
     GoalAimbot = false, GoalAimStrength = 0.5,
@@ -69,7 +68,6 @@ local Settings = {
     Prediction = false,
     Fullbright = false,
     
-    -- Ball ESP
     BallESP = false,
     BallESPBox = true,
     BallESPName = true,
@@ -77,18 +75,16 @@ local Settings = {
     BallESPTracer = false,
     BallESPColor = Color3.fromRGB(255, 220, 60),
     
-    -- Hitbox ESP (görsel)
     HitboxESP = false,
     HitboxESPTransparency = 0.7,
     HitboxESPColor = Color3.fromRGB(120, 220, 160),
     
-    -- Ball Hitbox ESP (YENİ)
     BallHitboxESP = false,
     BallHitboxESPTransparency = 0.5,
     BallHitboxESPColor = Color3.fromRGB(120, 255, 140),
     
     Watermark = true,
-    GuiTransparency = 250,
+    GuiTransparency = 100, -- DÜZELTİLDİ: 250 -> 100 (daha görünür)
 }
 
 -- =============================================
@@ -103,16 +99,12 @@ _G.SOUHUB_KeybindAssigners = _G.SOUHUB_KeybindAssigners or {}
 -- =============================================
 for _, loc in ipairs({game:GetService("CoreGui"), LocalPlayer:FindFirstChild("PlayerGui")}) do
     pcall(function()
-        local o = loc:FindFirstChild("SOUHUB_Touchline"); if o then o:Destroy() end
-        local o2 = loc:FindFirstChild("SOUHUB_Snow"); if o2 then o2:Destroy() end
+        if loc then
+            local o = loc:FindFirstChild("SOUHUB_Touchline"); if o then o:Destroy() end
+            local o2 = loc:FindFirstChild("SOUHUB_Snow"); if o2 then o2:Destroy() end
+        end
     end)
 end
-pcall(function()
-    if gethui then
-        local o = gethui():FindFirstChild("SOUHUB_Touchline"); if o then o:Destroy() end
-        local o2 = gethui():FindFirstChild("SOUHUB_Snow"); if o2 then o2:Destroy() end
-    end
-end)
 
 local function tween(obj, time, props, style, dir)
     local info = TweenInfo.new(time or 0.2, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
@@ -122,57 +114,65 @@ local function tween(obj, time, props, style, dir)
 end
 
 -- =============================================
--- GUI
+-- GUI (DÜZELTİLDİ)
 -- =============================================
 local guiParent = getGuiParent()
+
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SOUHUB_Touchline"
 ScreenGui.ResetOnSpawn = false
 ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-ScreenGui.DisplayOrder = 999
+ScreenGui.DisplayOrder = 999999
 ScreenGui.IgnoreGuiInset = true
-if guiParent:IsA("ScreenGui") then
-    ScreenGui = guiParent; ScreenGui.Name = "SOUHUB_Touchline"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 999
-else ScreenGui.Parent = guiParent end
+ScreenGui.Enabled = true -- DÜZELTİLDİ: Açıkça enabled yap
+pcall(function() ScreenGui.Parent = guiParent end)
 
--- =============================================
--- KAR YAGISI
--- =============================================
-local snowGui = Instance.new("ScreenGui")
-snowGui.Name = "SOUHUB_Snow"
-snowGui.ResetOnSpawn = false
-snowGui.DisplayOrder = 1
-snowGui.IgnoreGuiInset = true
-snowGui.Parent = guiParent
-
-local snowContainer = Instance.new("Frame")
-snowContainer.Size = UDim2.new(1, 0, 1, 0)
-snowContainer.BackgroundTransparency = 1
-snowContainer.Parent = snowGui
-
-local function createSnowflake()
-    local sf = Instance.new("TextLabel")
-    sf.Size = UDim2.new(0, math.random(8, 18), 0, math.random(8, 18))
-    sf.Position = UDim2.new(math.random(), 0, -0.05, 0)
-    sf.BackgroundTransparency = 1
-    sf.Text = "❄"
-    sf.TextColor3 = Color3.fromRGB(255, 255, 255)
-    sf.TextSize = math.random(8, 18)
-    sf.TextTransparency = math.random(3, 7) / 10
-    sf.Font = Enum.Font.GothamBold
-    sf.Rotation = math.random(0, 360)
-    sf.Parent = snowContainer
-    local dur = math.random(6, 14)
-    local drift = math.random(-20, 20) / 100
-    tween(sf, dur, {Position = UDim2.new(sf.Position.X.Scale + drift, 0, 1.1, 0), Rotation = sf.Rotation + math.random(-180, 180)}, Enum.EasingStyle.Linear)
-    task.delay(dur, function() if sf and sf.Parent then sf:Destroy() end end)
+if not ScreenGui.Parent then
+    ScreenGui.Parent = LocalPlayer:WaitForChild("PlayerGui")
 end
 
-task.spawn(function()
-    while snowContainer.Parent do
-        createSnowflake()
-        task.wait(math.random(5, 15) / 100)
+print("[SOU HUB] GUI parent:", ScreenGui.Parent and ScreenGui.Parent:GetFullName() or "nil")
+
+-- =============================================
+-- KAR YAGISI (opsiyonel - hata verirse devre dışı)
+-- =============================================
+pcall(function()
+    local snowGui = Instance.new("ScreenGui")
+    snowGui.Name = "SOUHUB_Snow"
+    snowGui.ResetOnSpawn = false
+    snowGui.DisplayOrder = 1
+    snowGui.IgnoreGuiInset = true
+    snowGui.Parent = guiParent
+
+    local snowContainer = Instance.new("Frame")
+    snowContainer.Size = UDim2.new(1, 0, 1, 0)
+    snowContainer.BackgroundTransparency = 1
+    snowContainer.Parent = snowGui
+
+    local function createSnowflake()
+        local sf = Instance.new("TextLabel")
+        sf.Size = UDim2.new(0, math.random(8, 18), 0, math.random(8, 18))
+        sf.Position = UDim2.new(math.random(), 0, -0.05, 0)
+        sf.BackgroundTransparency = 1
+        sf.Text = "❄"
+        sf.TextColor3 = Color3.fromRGB(255, 255, 255)
+        sf.TextSize = math.random(8, 18)
+        sf.TextTransparency = math.random(3, 7) / 10
+        sf.Font = Enum.Font.GothamBold
+        sf.Rotation = math.random(0, 360)
+        sf.Parent = snowContainer
+        local dur = math.random(6, 14)
+        local drift = math.random(-20, 20) / 100
+        tween(sf, dur, {Position = UDim2.new(sf.Position.X.Scale + drift, 0, 1.1, 0), Rotation = sf.Rotation + math.random(-180, 180)}, Enum.EasingStyle.Linear)
+        task.delay(dur, function() if sf and sf.Parent then sf:Destroy() end end)
     end
+
+    task.spawn(function()
+        while snowContainer.Parent do
+            createSnowflake()
+            task.wait(math.random(5, 15) / 100)
+        end
+    end)
 end)
 
 -- =============================================
@@ -250,9 +250,10 @@ local function makeDraggable(frame, handle)
 end
 
 -- =============================================
--- MAIN FRAME
+-- MAIN FRAME (DÜZELTİLDİ)
 -- =============================================
-local InitialTransparency = 1 - (Settings.GuiTransparency / 500)
+-- DÜZELTİLDİ: Transparency daha düşük yapıldı (daha görünür)
+local InitialTransparency = math.clamp(1 - (Settings.GuiTransparency / 500), 0, 0.4)
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
@@ -261,8 +262,9 @@ MainFrame.Position = UDim2.new(0.5, -310, 0.5, -240)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = InitialTransparency
 MainFrame.BorderSizePixel = 0
-MainFrame.Active = false
+MainFrame.Active = true -- DÜZELTİLDİ: true yapıldı (drag için)
 MainFrame.Visible = true
+MainFrame.ZIndex = 100
 MainFrame.Parent = ScreenGui
 
 Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
@@ -382,7 +384,6 @@ local function addToggle(parent, name, default, callback, order, withKeybind)
     end
     btn.MouseButton1Click:Connect(doToggle)
     
-    -- Keybind butonu
     if withKeybind then
         local kbBtn = Instance.new("TextButton")
         kbBtn.Size = UDim2.new(0, 68, 1, 0)
@@ -637,9 +638,6 @@ local getBallESPColor = addCycleButton(mainPage, "ESP Color", {"Yellow","Red","C
     Settings.BallESPColor = colors[v] or Color3.fromRGB(255,220,60)
 end, 13)
 
--- =============================================
--- BALL HITBOX ESP (YENİ)
--- =============================================
 addLabel(mainPage, "📦 BALL HITBOX ESP", 14)
 local getBallHitboxESP = addToggle(mainPage, "Ball Hitbox ESP", false, function(v) Settings.BallHitboxESP = v end, 15, true)
 local getBallHitboxTransparency = addSlider(mainPage, "Ball Hitbox Transparency", 0.1, 0.9, 0.5, function(v) Settings.BallHitboxESPTransparency = v end, 16)
@@ -669,9 +667,7 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
     if activeKeybindBtn then
         local assigner = _G.SOUHUB_KeybindAssigners[activeKeybindBtn]
-        if assigner then
-            assigner(input.KeyCode)
-        end
+        if assigner then assigner(input.KeyCode) end
         return
     end
     if keybindCallbacks[input.KeyCode] then
@@ -707,7 +703,7 @@ local function getGoal()
 end
 
 -- =============================================
--- BALL HITBOX ESP RENDER (YENİ)
+-- BALL HITBOX ESP RENDER
 -- =============================================
 local ballHitboxESPStorage = {}
 
@@ -746,7 +742,7 @@ RunService.Heartbeat:Connect(function()
             if hrp and ball then
                 local dist = (hrp.Position - ball.Position).Magnitude
                 if dist <= Settings.ReachValue then
-                    -- Reach aktif - topa dokunma mesafesi artırıldı
+                    -- Reach aktif
                 end
             end
         end
@@ -860,7 +856,6 @@ end
 -- MAIN RENDER LOOP
 -- =============================================
 RunService.RenderStepped:Connect(function()
-    -- Ball ESP
     local ball = getBall()
     if Settings.BallESP and ball then
         if not ballESPStorage[ball] then createBallESP() end
@@ -886,7 +881,6 @@ RunService.RenderStepped:Connect(function()
         ballESPStorage = {}
     end
     
-    -- Ball Hitbox ESP (YENİ)
     if Settings.BallHitboxESP and ball then
         local box = getOrCreateBallHitboxESP()
         if box then
@@ -898,21 +892,16 @@ RunService.RenderStepped:Connect(function()
         end
     else
         for _, box in pairs(ballHitboxESPStorage) do
-            if box and box.Parent then
-                box.Visible = false
-            end
+            if box and box.Parent then box.Visible = false end
         end
     end
     
-    -- Hitbox ESP (karakterler)
     if Settings.HitboxESP then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    if not hitboxESPStorage[hrp] then
-                        createHitboxESP(hrp)
-                    end
+                    if not hitboxESPStorage[hrp] then createHitboxESP(hrp) end
                     local box = hitboxESPStorage[hrp]
                     if box then
                         box.Size = hrp.Size
@@ -1009,4 +998,16 @@ showToast("SOU HUB", "Touchline Edition v2 yüklendi!", "success")
 task.wait(0.5)
 showToast("Ball Hitbox ESP", "Yeni özellik eklendi!", "info")
 
+-- Toggle tuşu (RightShift veya K ile GUI aç/kapat)
+UserInputService.InputBegan:Connect(function(input, gameProcessed)
+    if gameProcessed then return end
+    if input.KeyCode == Enum.KeyCode.RightShift or input.KeyCode == Enum.KeyCode.K then
+        MainFrame.Visible = not MainFrame.Visible
+        showToast("SOU HUB", MainFrame.Visible and "GUI açıldı" or "GUI kapatıldı", "info")
+    end
+end)
+
 print("[SOU HUB] Touchline Edition v2 hazır!")
+print("[SOU HUB] GUI Parent:", ScreenGui.Parent and ScreenGui.Parent:GetFullName() or "YOK")
+print("[SOU HUB] MainFrame Visible:", MainFrame.Visible)
+print("[SOU HUB] GUI Aç/Kapat: RightShift veya K")
