@@ -1,6 +1,5 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION v2 (UNIVERSAL FIX)
-    Otomatik top/kale bulma + tüm özellikler
+    SOU HUB - TOUCHLINE EDITION v2 (DEBUG + UNIVERSAL FIX)
 ]]
 
 print("[SOU HUB] Yukleniyor...")
@@ -24,6 +23,8 @@ local Theme = {
     Text = Color3.fromRGB(220, 235, 250),
     SubText = Color3.fromRGB(140, 165, 195),
     Border = Color3.fromRGB(45, 70, 105),
+    Success = Color3.fromRGB(80, 220, 130),
+    Error = Color3.fromRGB(255, 80, 80),
 }
 
 local OriginalLighting = {
@@ -62,10 +63,6 @@ pcall(function()
     local old = PlayerGui:FindFirstChild("SOUHUB_Touchline")
     if old then old:Destroy() end
 end)
-pcall(function()
-    local old = game:GetService("CoreGui"):FindFirstChild("SOUHUB_BallHitboxESP")
-    if old then old:Destroy() end
-end)
 
 local function tween(obj, time, props, style, dir)
     local info = TweenInfo.new(time or 0.2, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
@@ -88,8 +85,8 @@ ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 620, 0, 480)
-MainFrame.Position = UDim2.new(0.5, -310, 0.5, -240)
+MainFrame.Size = UDim2.new(0, 620, 0, 520)
+MainFrame.Position = UDim2.new(0.5, -310, 0.5, -260)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = 0.1
 MainFrame.BorderSizePixel = 0
@@ -147,17 +144,18 @@ tl.TextXAlignment = Enum.TextXAlignment.Left
 tl.ZIndex = 5
 tl.Parent = MainFrame
 
-local cl = Instance.new("TextLabel")
-cl.Size = UDim2.new(1, 0, 0, 14)
-cl.Position = UDim2.new(0, 24, 0, 34)
-cl.BackgroundTransparency = 1
-cl.Text = "TOUCHLINE EDITION v2"
-cl.TextColor3 = Theme.SubText
-cl.TextSize = 9
-cl.Font = Enum.Font.GothamSemibold
-cl.TextXAlignment = Enum.TextXAlignment.Left
-cl.ZIndex = 5
-cl.Parent = MainFrame
+-- DEBUG DURUM ETİKETİ (YENİ - TOP BULUNDU MU?)
+local DebugLabel = Instance.new("TextLabel")
+DebugLabel.Size = UDim2.new(1, -80, 0, 14)
+DebugLabel.Position = UDim2.new(0, 24, 0, 34)
+DebugLabel.BackgroundTransparency = 1
+DebugLabel.Text = "DEBUG: Yukleniyor..."
+DebugLabel.TextColor3 = Theme.SubText
+DebugLabel.TextSize = 9
+DebugLabel.Font = Enum.Font.GothamSemibold
+DebugLabel.TextXAlignment = Enum.TextXAlignment.Left
+DebugLabel.ZIndex = 5
+DebugLabel.Parent = MainFrame
 
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 28, 0, 28)
@@ -178,8 +176,8 @@ closeBtn.MouseButton1Click:Connect(function()
 end)
 
 local ContentArea = Instance.new("Frame")
-ContentArea.Size = UDim2.new(1, -20, 1, -70)
-ContentArea.Position = UDim2.new(0, 10, 0, 60)
+ContentArea.Size = UDim2.new(1, -20, 1, -75)
+ContentArea.Position = UDim2.new(0, 10, 0, 65)
 ContentArea.BackgroundTransparency = 1
 ContentArea.ZIndex = 3
 ContentArea.Parent = MainFrame
@@ -506,56 +504,84 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 -- =============================================
--- UNIVERSAL BALL FINDER (DÜZELTİLDİ)
+-- UNIVERSAL BALL FINDER (ÇOK AGRESİF)
 -- =============================================
 local cachedBall = nil
 local ballCacheTime = 0
+local allBallParts = {} -- Tüm adayları sakla
 
-local function isBall(part)
-    if not part or not part:IsA("BasePart") then return false end
-    local name = part.Name:lower()
-    -- Top ismi kontrolü
-    if name == "ball" or name == "top" or name == "soccerball" or name == "football" then
-        return true
+local function collectAllBalls()
+    local candidates = {}
+    
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            local score = 0
+            
+            -- İsim kontrolü
+            if name == "ball" then score = 100
+            elseif name == "top" then score = 100
+            elseif name == "soccerball" then score = 100
+            elseif name == "football" then score = 100
+            elseif name:find("^ball") then score = 80
+            elseif name:find("ball$") then score = 80
+            elseif name:find("top") then score = 60
+            elseif name:find("soccer") then score = 60
+            elseif name:find("foot") then score = 60
+            end
+            
+            -- Shape kontrolü
+            if obj.Shape == Enum.PartType.Ball then score = score + 50 end
+            
+            -- Mesh kontrolü
+            local mesh = obj:FindFirstChildOfClass("SpecialMesh")
+            if mesh and mesh.MeshType == Enum.MeshType.Sphere then score = score + 40 end
+            
+            -- Boyut kontrolü (top genelde 1-5 stud)
+            if obj.Size.X >= 0.5 and obj.Size.X <= 8 then score = score + 10 end
+            
+            -- Çok büyük parçalar top olamaz (saha, kale vb.)
+            if obj.Size.X > 15 or obj.Size.Y > 15 or obj.Size.Z > 15 then score = 0 end
+            
+            -- Anchored değilse (top hareket eder) bonus
+            if not obj.Anchored then score = score + 20 end
+            
+            if score > 0 then
+                table.insert(candidates, {part = obj, score = score})
+            end
+        end
     end
-    if name:find("ball") or name:find("top") then
-        return true
-    end
-    -- Shape kontrolü (top yuvarlak olur)
-    if part.Shape == Enum.PartType.Ball then
-        return true
-    end
-    -- Mesh kontrolü
-    if part:FindFirstChildOfClass("SpecialMesh") then
-        local mesh = part:FindFirstChildOfClass("SpecialMesh")
-        if mesh.MeshType == Enum.MeshType.Sphere then return true end
-    end
-    return false
+    
+    -- Puana göre sırala
+    table.sort(candidates, function(a, b) return a.score > b.score end)
+    return candidates
 end
 
 local function getBall()
     local now = tick()
-    if cachedBall and cachedBall.Parent and (now - ballCacheTime) < 0.5 then
+    if cachedBall and cachedBall.Parent and (now - ballCacheTime) < 0.3 then
         return cachedBall
     end
     
-    -- Önce workspace'te ara
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if isBall(obj) then
-            cachedBall = obj
-            ballCacheTime = now
-            return obj
-        end
+    allBallParts = collectAllBalls()
+    
+    if #allBallParts > 0 then
+        cachedBall = allBallParts[1].part
+        ballCacheTime = now
+        return cachedBall
     end
     
-    -- Karakterlerin içinde ara
+    -- Oyuncu karakterlerinde ara
     for _, plr in ipairs(Players:GetPlayers()) do
         if plr.Character then
             for _, obj in ipairs(plr.Character:GetDescendants()) do
-                if isBall(obj) then
-                    cachedBall = obj
-                    ballCacheTime = now
-                    return obj
+                if obj:IsA("BasePart") then
+                    local name = obj.Name:lower()
+                    if name:find("ball") or name:find("top") then
+                        cachedBall = obj
+                        ballCacheTime = now
+                        return obj
+                    end
                 end
             end
         end
@@ -565,7 +591,7 @@ local function getBall()
 end
 
 -- =============================================
--- UNIVERSAL GOAL FINDER (DÜZELTİLDİ)
+-- GOAL FINDER
 -- =============================================
 local cachedGoal = nil
 local goalCacheTime = 0
@@ -587,7 +613,6 @@ local function getGoal()
             elseif name:find("goal") then score = 8
             elseif name:find("kale") then score = 8
             elseif name:find("net") then score = 5
-            elseif name:find("post") then score = 3
             end
             if score > bestScore then
                 bestScore = score
@@ -609,7 +634,7 @@ end
 local ballESPStorage = {}
 
 local function createBallESP(ball)
-    if ballESPStorage[ball] then return end
+    if ballESPStorage[ball] and ballESPStorage[ball].gui.Parent then return end
     
     local billboard = Instance.new("BillboardGui")
     billboard.Name = "SOUHUB_BallESP"
@@ -683,9 +708,7 @@ local function updateBallHitboxESP()
         return
     end
     
-    if ballHitboxBox and ballHitboxBox.Parent then
-        ballHitboxBox:Destroy()
-    end
+    if ballHitboxBox and ballHitboxBox.Parent then ballHitboxBox:Destroy() end
     
     local box = Instance.new("BoxHandleAdornment")
     box.Name = "SOUHUB_BallHitboxESP"
@@ -726,34 +749,33 @@ end
 -- REACH & BALL HITBOX
 -- =============================================
 local originalBallSize = nil
+local originalBall = nil
 
 RunService.Heartbeat:Connect(function()
-    if Settings.Reach then
-        local char = LocalPlayer.Character
-        if char then
-            local hrp = char:FindFirstChild("HumanoidRootPart")
-            local ball = getBall()
-            if hrp and ball then
-                local dist = (hrp.Position - ball.Position).Magnitude
-                if dist <= Settings.ReachValue then
-                    -- Reach aktif
-                end
-            end
-        end
-    end
-    
     local ball = getBall()
+    
     if ball then
+        -- DEBUG güncelle
+        DebugLabel.Text = "DEBUG: TOP BULUNDU -> " .. ball:GetFullName() .. " (Size: " .. tostring(math.floor(ball.Size.X*10)/10) .. ")"
+        DebugLabel.TextColor3 = Theme.Success
+        
         if Settings.BallHitbox then
-            if not originalBallSize then originalBallSize = ball.Size end
+            if originalBall ~= ball then
+                originalBall = ball
+                originalBallSize = ball.Size
+            end
             local s = Settings.BallSize
             ball.Size = Vector3.new(s, s, s)
         else
-            if originalBallSize then
-                ball.Size = originalBallSize
+            if originalBall and originalBallSize then
+                pcall(function() originalBall.Size = originalBallSize end)
+                originalBall = nil
                 originalBallSize = nil
             end
         end
+    else
+        DebugLabel.Text = "DEBUG: TOP BULUNAMADI! (" .. tostring(#allBallParts) .. " aday)"
+        DebugLabel.TextColor3 = Theme.Error
     end
 end)
 
@@ -765,7 +787,7 @@ RunService.RenderStepped:Connect(function()
     
     -- Ball ESP
     if Settings.BallESP and ball then
-        if not ballESPStorage[ball] then createBallESP(ball) end
+        createBallESP(ball)
         local data = ballESPStorage[ball]
         if data and data.gui.Parent then
             data.box.BorderColor3 = Settings.BallESPColor
@@ -891,4 +913,3 @@ UserInputService.InputBegan:Connect(function(input, gameProcessed)
 end)
 
 print("[SOU HUB] Hazir! GUI: RightShift")
-print("[SOU HUB] Top bulundu mu?:", getBall() and "EVET" or "HAYIR")
