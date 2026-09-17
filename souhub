@@ -1,5 +1,5 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION v10 (YESIL NOKTA + CEMBER HITBOX + CANCOLLIDE OFF)
+    SOU HUB - TOUCHLINE EDITION v1.1 (CEMBER HITBOX)
 ]]
 
 local Players = game:GetService("Players")
@@ -21,14 +21,14 @@ end)
 -- SETTINGS
 -- =============================================
 local Settings = {
-    Reach = false, ReachValue = 30,
+    Reach = false,
     BallHitbox = false, BallSize = 2.0,
-    GoalAimbot = false, GoalAimStrength = 0.5,
+    GoalAimbot = false,
     AutoDive = false,
     Fullbright = false,
     BallESP = false, BallESPColor = Color3.fromRGB(255, 220, 60),
-    BallHitboxESP = false, BallHitboxESPColor = Color3.fromRGB(120, 255, 140),
-    HitboxESP = false, HitboxESPColor = Color3.fromRGB(120, 220, 160),
+    BallHitboxESP = false,
+    HitboxESP = false,
 }
 
 -- =============================================
@@ -86,8 +86,8 @@ ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 340, 0, 600)
-MainFrame.Position = UDim2.new(0.5, -170, 0.5, -300)
+MainFrame.Size = UDim2.new(0, 340, 0, 620)
+MainFrame.Position = UDim2.new(0.5, -170, 0.5, -310)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 20, 38)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -140,7 +140,7 @@ local subtitleLbl = Instance.new("TextLabel")
 subtitleLbl.Size = UDim2.new(1, -60, 0, 14)
 subtitleLbl.Position = UDim2.new(0, 15, 0, 26)
 subtitleLbl.BackgroundTransparency = 1
-subtitleLbl.Text = "v10 - TOUCHLINE"
+subtitleLbl.Text = "v1.1 - TOUCHLINE"
 subtitleLbl.TextColor3 = Color3.fromRGB(140, 165, 195)
 subtitleLbl.TextSize = 9
 subtitleLbl.Font = Enum.Font.GothamSemibold
@@ -178,7 +178,7 @@ debugLabel.ZIndex = 111
 debugLabel.Parent = MainFrame
 
 -- =============================================
--- BUTON OLUŞTURMA (YEŞİL NOKTA İLE)
+-- BUTON (YEŞİL NOKTA + AKTİF RENK)
 -- =============================================
 local mouseDown = false
 UserInputService.InputEnded:Connect(function(input)
@@ -203,11 +203,11 @@ local function createButton(text, callback, yPos)
     stroke.Color = Color3.fromRGB(50, 80, 120)
     stroke.Thickness = 1
     
-    -- YEŞİL NOKTA (aktifken yanar)
+    -- YEŞİL NOKTA
     local indicator = Instance.new("Frame")
     indicator.Name = "Indicator"
-    indicator.Size = UDim2.new(0, 8, 0, 8)
-    indicator.Position = UDim2.new(0, 10, 0.5, -4)
+    indicator.Size = UDim2.new(0, 10, 0, 10)
+    indicator.Position = UDim2.new(0, 12, 0.5, -5)
     indicator.BackgroundColor3 = Color3.fromRGB(80, 255, 130)
     indicator.BorderSizePixel = 0
     indicator.Visible = false
@@ -215,17 +215,15 @@ local function createButton(text, callback, yPos)
     indicator.Parent = btn
     Instance.new("UICorner", indicator).CornerRadius = UDim.new(1, 0)
     
-    -- Parlama efekti
     local glow = Instance.new("UIStroke", indicator)
     glow.Color = Color3.fromRGB(80, 255, 130)
-    glow.Thickness = 2
-    glow.Transparency = 0.5
+    glow.Thickness = 3
+    glow.Transparency = 0.4
     
-    -- Metin
     local textLbl = Instance.new("TextLabel")
     textLbl.Name = "TextLbl"
     textLbl.Size = UDim2.new(1, -30, 1, 0)
-    textLbl.Position = UDim2.new(0, 25, 0, 0)
+    textLbl.Position = UDim2.new(0, 28, 0, 0)
     textLbl.BackgroundTransparency = 1
     textLbl.Text = text
     textLbl.TextColor3 = Color3.fromRGB(220, 235, 250)
@@ -235,7 +233,6 @@ local function createButton(text, callback, yPos)
     textLbl.ZIndex = 106
     textLbl.Parent = btn
     
-    -- HOVER
     btn.MouseEnter:Connect(function()
         if not btn:GetAttribute("Active") then
             btn.BackgroundColor3 = Color3.fromRGB(38, 60, 95)
@@ -247,14 +244,12 @@ local function createButton(text, callback, yPos)
         end
     end)
     
-    -- TIKLAMA
     btn.MouseButton1Down:Connect(function()
         if mouseDown then return end
         mouseDown = true
         callback()
     end)
     
-    -- Buton durumunu ayarla
     function btn:SetActive(active)
         self:SetAttribute("Active", active)
         if active then
@@ -276,7 +271,6 @@ end
 -- =============================================
 local y = 70
 
--- === BALL CONTROL ===
 local s1 = Instance.new("TextLabel")
 s1.Size = UDim2.new(1, -16, 0, 18)
 s1.Position = UDim2.new(0, 8, 0, y)
@@ -302,7 +296,7 @@ local ballHitboxBtn, ballHitboxTxt = createButton("Ball Hitbox (Buyut)", functio
     ballHitboxTxt.Text = Settings.BallHitbox and "Ball Hitbox (Buyut)  [ON]" or "Ball Hitbox (Buyut)"
 end, y); y = y + 44
 
--- BALL SIZE SLIDER (1.0 - 20.0)
+-- BALL SIZE SLIDER (1 - 20)
 local sizeLabel = Instance.new("TextLabel")
 sizeLabel.Size = UDim2.new(1, -16, 0, 14)
 sizeLabel.Position = UDim2.new(0, 8, 0, y)
@@ -357,7 +351,6 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 y = y + 22
 
--- === BALL ESP ===
 local s2 = Instance.new("TextLabel")
 s2.Size = UDim2.new(1, -16, 0, 18)
 s2.Position = UDim2.new(0, 8, 0, y)
@@ -377,7 +370,7 @@ local ballEspBtn, ballEspTxt = createButton("Ball ESP", function()
     ballEspTxt.Text = Settings.BallESP and "Ball ESP  [ON]" or "Ball ESP"
 end, y); y = y + 44
 
--- ESP Color Cycle
+-- ESP Color
 local colorBtn = Instance.new("TextButton")
 colorBtn.Size = UDim2.new(1, -16, 0, 32)
 colorBtn.Position = UDim2.new(0, 8, 0, y)
@@ -422,8 +415,6 @@ colorBtn.MouseButton1Down:Connect(function()
     colorIdx = colorIdx % #ColorKeys + 1
     local key = ColorKeys[colorIdx]
     Settings.BallESPColor = ColorPalette[key]
-    Settings.BallHitboxESPColor = ColorPalette[key]
-    Settings.HitboxESPColor = ColorPalette[key]
     colorValLbl.Text = key
     colorValLbl.TextColor3 = ColorPalette[key]
     task.wait(0.15)
@@ -431,7 +422,6 @@ colorBtn.MouseButton1Down:Connect(function()
 end)
 y = y + 38
 
--- === BALL HITBOX ESP ===
 local s3 = Instance.new("TextLabel")
 s3.Size = UDim2.new(1, -16, 0, 18)
 s3.Position = UDim2.new(0, 8, 0, y)
@@ -451,7 +441,6 @@ local ballHitboxEspBtn, ballHitboxEspTxt = createButton("Ball Hitbox ESP", funct
     ballHitboxEspTxt.Text = Settings.BallHitboxESP and "Ball Hitbox ESP  [ON]" or "Ball Hitbox ESP"
 end, y); y = y + 44
 
--- === PLAYER HITBOX ===
 local s4 = Instance.new("TextLabel")
 s4.Size = UDim2.new(1, -16, 0, 18)
 s4.Position = UDim2.new(0, 8, 0, y)
@@ -471,7 +460,6 @@ local hitboxEspBtn, hitboxEspTxt = createButton("Hitbox ESP (Karakter)", functio
     hitboxEspTxt.Text = Settings.HitboxESP and "Hitbox ESP (Karakter)  [ON]" or "Hitbox ESP (Karakter)"
 end, y); y = y + 44
 
--- === DİĞER ===
 local s5 = Instance.new("TextLabel")
 s5.Size = UDim2.new(1, -16, 0, 18)
 s5.Position = UDim2.new(0, 8, 0, y)
@@ -534,7 +522,7 @@ task.spawn(function()
     while MainFrame.Parent do
         local ball = findBall()
         if ball then
-            debugLabel.Text = "TOP: " .. ball:GetFullName() .. " | CanCollide: " .. tostring(ball.CanCollide)
+            debugLabel.Text = "TOP: " .. ball:GetFullName() .. " | Size: " .. string.format("%.1f", ball.Size.X)
             debugLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
         else
             debugLabel.Text = "TOP BULUNAMADI!"
@@ -545,17 +533,17 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP: ÇEMBER + CANCOLLIDE OFF
+-- ESP: ÇEMBER (SphereHandleAdornment)
 -- =============================================
 local ballHighlight = nil
 local ballBillboard = nil
-local ballSphere = nil       -- ÇEMBER (SphereHandleAdornment)
-local charHitboxData = {}
+local ballSphere = nil
+local charSphereData = {}
 
 local function updateESP()
     local ball = findBall()
     
-    -- === BALL ESP ===
+    -- === BALL ESP (Highlight + Billboard) ===
     if Settings.BallESP and ball then
         if not ballHighlight or ballHighlight.Parent ~= ball then
             if ballHighlight then ballHighlight:Destroy() end
@@ -623,7 +611,7 @@ local function updateESP()
         if ballBillboard then ballBillboard:Destroy() ballBillboard = nil end
     end
     
-    -- === BALL HITBOX ESP (ÇEMBER - SphereHandleAdornment) ===
+    -- === BALL HITBOX ESP (ÇEMBER) ===
     if Settings.BallHitboxESP and ball then
         if not ballSphere or ballSphere.Parent ~= ball then
             if ballSphere then ballSphere:Destroy() end
@@ -631,14 +619,14 @@ local function updateESP()
             ballSphere.Name = "SOUHUB_BallSphere"
             ballSphere.Adornee = ball
             ballSphere.Radius = (ball.Size.X / 2) + 0.3
-            ballSphere.Color3 = Settings.BallHitboxESPColor
+            ballSphere.Color3 = Settings.BallESPColor
             ballSphere.Transparency = 0.4
             ballSphere.AlwaysOnTop = true
             ballSphere.ZIndex = 5
             ballSphere.Parent = ball
         else
             ballSphere.Radius = (ball.Size.X / 2) + 0.3
-            ballSphere.Color3 = Settings.BallHitboxESPColor
+            ballSphere.Color3 = Settings.BallESPColor
         end
     else
         if ballSphere then ballSphere:Destroy() ballSphere = nil end
@@ -650,27 +638,27 @@ local function updateESP()
             if plr ~= LocalPlayer and plr.Character then
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    if not charHitboxData[hrp] or not charHitboxData[hrp].sphere.Parent then
+                    if not charSphereData[hrp] or not charSphereData[hrp].sphere.Parent then
                         local sphere = Instance.new("SphereHandleAdornment")
                         sphere.Adornee = hrp
                         sphere.Radius = math.max(hrp.Size.X, hrp.Size.Y, hrp.Size.Z) / 2 + 0.5
-                        sphere.Color3 = Settings.HitboxESPColor
+                        sphere.Color3 = Settings.BallESPColor
                         sphere.Transparency = 0.6
                         sphere.AlwaysOnTop = true
                         sphere.ZIndex = 5
                         sphere.Parent = hrp
-                        charHitboxData[hrp] = {sphere = sphere}
+                        charSphereData[hrp] = {sphere = sphere}
                     else
-                        charHitboxData[hrp].sphere.Color3 = Settings.HitboxESPColor
+                        charSphereData[hrp].sphere.Color3 = Settings.BallESPColor
                     end
                 end
             end
         end
     else
-        for hrp, data in pairs(charHitboxData) do
+        for hrp, data in pairs(charSphereData) do
             if data.sphere and data.sphere.Parent then data.sphere:Destroy() end
         end
-        charHitboxData = {}
+        charSphereData = {}
     end
 end
 
@@ -680,6 +668,7 @@ end
 local originalBallSize = nil
 local originalBallPart = nil
 local originalCanCollide = nil
+local originalMassless = nil
 
 -- =============================================
 -- ANA DÖNGÜ
@@ -690,27 +679,28 @@ RunService.RenderStepped:Connect(function()
     local ball = findBall()
     
     if ball then
-        -- Ball Hitbox (büyütme)
         if Settings.BallHitbox then
             if originalBallPart ~= ball then
                 originalBallPart = ball
                 originalBallSize = ball.Size
                 originalCanCollide = ball.CanCollide
+                originalMassless = ball.Massless
             end
             local s = Settings.BallSize
             ball.Size = Vector3.new(s, s, s)
-            ball.CanCollide = false  -- HITBOX İÇİNE GİRİLEBİLİR
-            ball.Massless = true     -- Ağırlıksız (karakteri itmez)
+            ball.CanCollide = false
+            ball.Massless = true
         else
             if originalBallPart and originalBallSize then
                 pcall(function()
                     originalBallPart.Size = originalBallSize
-                    originalBallPart.CanCollide = originalCanCollide or true
-                    originalBallPart.Massless = false
+                    originalBallPart.CanCollide = originalCanCollide
+                    originalBallPart.Massless = originalMassless
                 end)
                 originalBallPart = nil
                 originalBallSize = nil
                 originalCanCollide = nil
+                originalMassless = nil
             end
         end
     end
@@ -729,7 +719,7 @@ RunService.RenderStepped:Connect(function()
                 local goal = findGoal()
                 if goal then
                     local targetCF = CFrame.new(ball.Position, goal.Position)
-                    ball.CFrame = ball.CFrame:Lerp(targetCF, Settings.GoalAimStrength * 0.1)
+                    ball.CFrame = ball.CFrame:Lerp(targetCF, 0.05)
                 end
             end
         end
@@ -760,4 +750,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("[SOU HUB v10] Yuklendi!")
+print("[SOU HUB v1.1] Yuklendi!")
