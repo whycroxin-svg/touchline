@@ -29,31 +29,33 @@ local Settings = {
 -- TOP VE KALE BULMA (DOĞRU YÖNTEM)
 -- =============================================
 local function findBall()
-    -- 1. Önce direkt isimle dene
-    for _, name in ipairs({"Ball", "ball", "SoccerBall", "soccerball", "Football", "football"}) do
-        local b = workspace:FindFirstChild(name)
-        if b and b:IsA("BasePart") then return b end
+    -- 1. En güvenilir yöntem: Shape'i Ball olan tüm parçaları tara
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") and obj.Shape == Enum.PartType.Ball then
+            -- Çok büyük veya çok küçük parçaları filtrele (saha, kale vb.)
+            if obj.Size.X > 0.5 and obj.Size.X < 10 then
+                return obj
+            end
+        end
     end
     
-    -- 2. GetDescendants ile ara (daha derin)
+    -- 2. Yedek yöntem: Özel Mesh'i Sphere olan parçaları tara
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
-            local name = obj.Name:lower()
-            -- Shape Ball olan ve boyutu uygun olan
-            if obj.Shape == Enum.PartType.Ball then
-                if obj.Size.X > 0.5 and obj.Size.X < 10 then
-                    return obj
-                end
-            end
-            -- Mesh Sphere olan
             local mesh = obj:FindFirstChildOfClass("SpecialMesh")
             if mesh and mesh.MeshType == Enum.MeshType.Sphere then
                 if obj.Size.X > 0.5 and obj.Size.X < 10 then
                     return obj
                 end
             end
-            -- İsimde ball/top geçen
-            if name == "ball" or name == "top" then
+        end
+    end
+    
+    -- 3. Son çare: İsimde ball/top geçen parçaları tara
+    for _, obj in ipairs(workspace:GetDescendants()) do
+        if obj:IsA("BasePart") then
+            local name = obj.Name:lower()
+            if name == "ball" or name == "top" or name:find("ball") or name:find("top") then
                 return obj
             end
         end
