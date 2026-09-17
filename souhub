@@ -1,0 +1,763 @@
+--[[
+    SOU HUB - TOUCHLINE EDITION
+    Reach + Ball Hitbox + Goal Aimbot + Auto Dive
+    Winter Theme + Kar Yagisi
+]]
+
+print("[SOU HUB] Touchline Edition yukleniyor...")
+
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
+local Lighting = game:GetService("Lighting")
+local Stats = game:GetService("Stats")
+local TweenService = game:GetService("TweenService")
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local Camera = workspace.CurrentCamera
+local LocalPlayer = Players.LocalPlayer
+local Mouse = LocalPlayer:GetMouse()
+
+local function getGuiParent()
+    if gethui then return gethui() end
+    if syn and syn.protect_gui then
+        local sg = Instance.new("ScreenGui")
+        syn.protect_gui(sg)
+        sg.Parent = game:GetService("CoreGui")
+        return sg
+    end
+    local ok = pcall(function()
+        local t = Instance.new("ScreenGui"); t.Parent = game:GetService("CoreGui"); t:Destroy()
+    end)
+    if ok then return game:GetService("CoreGui") end
+    return LocalPlayer:WaitForChild("PlayerGui")
+end
+
+-- =============================================
+-- THEME
+-- =============================================
+local Theme = {
+    Bg = Color3.fromRGB(10, 18, 32),
+    Panel = Color3.fromRGB(16, 28, 46),
+    Header = Color3.fromRGB(14, 24, 40),
+    Button = Color3.fromRGB(26, 42, 66),
+    Slider = Color3.fromRGB(30, 48, 72),
+    Accent = Color3.fromRGB(140, 200, 255),
+    Accent2 = Color3.fromRGB(232, 244, 255),
+    Text = Color3.fromRGB(220, 235, 250),
+    SubText = Color3.fromRGB(140, 165, 195),
+    Border = Color3.fromRGB(45, 70, 105),
+    ToggleOn = Color3.fromRGB(120, 200, 255),
+    ToggleOff = Color3.fromRGB(50, 70, 100),
+}
+
+local OriginalLighting = {
+    Ambient = Lighting.Ambient, OutdoorAmbient = Lighting.OutdoorAmbient,
+    Brightness = Lighting.Brightness, FogEnd = Lighting.FogEnd,
+}
+
+-- =============================================
+-- SETTINGS
+-- =============================================
+local Settings = {
+    Reach = false, ReachValue = 30,
+    BallHitbox = false, BallSize = 2.0,
+    GoalAimbot = false, GoalAimStrength = 0.5,
+    AutoDive = false,
+    Prediction = false, PredictionValue = 0.3,
+    Fullbright = false,
+    Watermark = true, FPSDisplay = true,
+    GuiTransparency = 250,
+}
+
+-- =============================================
+-- CLEANUP
+-- =============================================
+for _, loc in ipairs({game:GetService("CoreGui"), LocalPlayer:FindFirstChild("PlayerGui")}) do
+    pcall(function()
+        local o = loc:FindFirstChild("SOUHUB_Touchline"); if o then o:Destroy() end
+        local o2 = loc:FindFirstChild("SOUHUB_Snow"); if o2 then o2:Destroy() end
+    end)
+end
+pcall(function()
+    if gethui then
+        local o = gethui():FindFirstChild("SOUHUB_Touchline"); if o then o:Destroy() end
+        local o2 = gethui():FindFirstChild("SOUHUB_Snow"); if o2 then o2:Destroy() end
+    end
+end)
+
+local function tween(obj, time, props, style, dir)
+    local info = TweenInfo.new(time or 0.2, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
+    local t = TweenService:Create(obj, info, props)
+    t:Play()
+    return t
+end
+
+-- =============================================
+-- GUI
+-- =============================================
+local guiParent = getGuiParent()
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SOUHUB_Touchline"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999
+ScreenGui.IgnoreGuiInset = true
+if guiParent:IsA("ScreenGui") then
+    ScreenGui = guiParent; ScreenGui.Name = "SOUHUB_Touchline"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 999
+else ScreenGui.Parent = guiParent end
+
+-- =============================================
+-- KAR YAGISI
+-- =============================================
+local snowGui = Instance.new("ScreenGui")
+snowGui.Name = "SOUHUB_Snow"
+snowGui.ResetOnSpawn = false
+snowGui.DisplayOrder = 1
+snowGui.IgnoreGuiInset = true
+snowGui.Parent = guiParent
+
+local snowContainer = Instance.new("Frame")
+snowContainer.Size = UDim2.new(1, 0, 1, 0)
+snowContainer.BackgroundTransparency = 1
+snowContainer.Parent = snowGui
+
+local function createSnowflake()
+    local sf = Instance.new("TextLabel")
+    sf.Size = UDim2.new(0, math.random(8, 18), 0, math.random(8, 18))
+    sf.Position = UDim2.new(math.random(), 0, -0.05, 0)
+    sf.BackgroundTransparency = 1
+    sf.Text = "❄"
+    sf.TextColor3 = Color3.fromRGB(255, 255, 255)
+    sf.TextSize = math.random(8, 18)
+    sf.TextTransparency = math.random(3, 7) / 10
+    sf.Font = Enum.Font.GothamBold
+    sf.Rotation = math.random(0, 360)
+    sf.Parent = snowContainer
+    local dur = math.random(6, 14)
+    local drift = math.random(-20, 20) / 100
+    tween(sf, dur, {Position = UDim2.new(sf.Position.X.Scale + drift, 0, 1.1, 0), Rotation = sf.Rotation + math.random(-180, 180)}, Enum.EasingStyle.Linear)
+    task.delay(dur, function() if sf and sf.Parent then sf:Destroy() end end)
+end
+
+task.spawn(function()
+    while snowContainer.Parent do
+        createSnowflake()
+        task.wait(math.random(5, 15) / 100)
+    end
+end)
+
+-- =============================================
+-- TOAST
+-- =============================================
+local toastContainer = Instance.new("Frame")
+toastContainer.Size = UDim2.new(0, 320, 1, -20)
+toastContainer.Position = UDim2.new(1, -340, 0, 10)
+toastContainer.BackgroundTransparency = 1
+toastContainer.ZIndex = 1000
+toastContainer.Parent = ScreenGui
+local toastLayout = Instance.new("UIListLayout", toastContainer)
+toastLayout.SortOrder = Enum.SortOrder.LayoutOrder
+toastLayout.Padding = UDim.new(0, 8)
+toastLayout.VerticalAlignment = Enum.VerticalAlignment.Top
+
+local function showToast(title, message, toastType)
+    toastType = toastType or "info"
+    local colors = {info = Theme.Accent, success = Color3.fromRGB(80, 200, 130), warning = Color3.fromRGB(230, 180, 60), error = Color3.fromRGB(220, 70, 80)}
+    local toast = Instance.new("Frame")
+    toast.Size = UDim2.new(0, 0, 0, 52)
+    toast.Position = UDim2.new(1, 20, 0, 0)
+    toast.BackgroundColor3 = Theme.Panel
+    toast.BackgroundTransparency = 0.05
+    toast.BorderSizePixel = 0
+    toast.ZIndex = 1001
+    toast.Parent = toastContainer
+    Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 6)
+    local stroke = Instance.new("UIStroke", toast)
+    stroke.Color = colors[toastType]; stroke.Thickness = 1.5; stroke.Transparency = 0.3
+    local bar = Instance.new("Frame")
+    bar.Size = UDim2.new(0, 3, 1, 0); bar.BackgroundColor3 = colors[toastType]
+    bar.BorderSizePixel = 0; bar.ZIndex = 1002; bar.Parent = toast
+    local titleLbl = Instance.new("TextLabel")
+    titleLbl.Size = UDim2.new(1, -24, 0, 18); titleLbl.Position = UDim2.new(0, 16, 0, 10)
+    titleLbl.BackgroundTransparency = 1; titleLbl.Text = title
+    titleLbl.TextColor3 = Theme.Text; titleLbl.TextSize = 12
+    titleLbl.Font = Enum.Font.GothamBold; titleLbl.TextXAlignment = Enum.TextXAlignment.Left
+    titleLbl.ZIndex = 1002; titleLbl.Parent = toast
+    local msgLbl = Instance.new("TextLabel")
+    msgLbl.Size = UDim2.new(1, -24, 0, 16); msgLbl.Position = UDim2.new(0, 16, 0, 28)
+    msgLbl.BackgroundTransparency = 1; msgLbl.Text = message
+    msgLbl.TextColor3 = Theme.SubText; msgLbl.TextSize = 10
+    msgLbl.Font = Enum.Font.Gotham; msgLbl.TextXAlignment = Enum.TextXAlignment.Left
+    msgLbl.ZIndex = 1002; msgLbl.Parent = toast
+    tween(toast, 0.4, {Size = UDim2.new(0, 320, 0, 52), Position = UDim2.new(0, 0, 0, 0)}, Enum.EasingStyle.Quint)
+    task.delay(3, function()
+        tween(toast, 0.3, {Position = UDim2.new(1, 20, 0, 0)})
+        tween(toast, 0.3, {BackgroundTransparency = 1})
+        toast:Destroy()
+    end)
+end
+
+-- =============================================
+-- DRAGGABLE
+-- =============================================
+local function makeDraggable(frame, handle)
+    local dragging, dragInput, dragStart, startPos
+    handle = handle or frame
+    handle.InputBegan:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+            dragging = true; dragStart = input.Position; startPos = frame.Position
+            input.Changed:Connect(function() if input.UserInputState == Enum.UserInputState.End then dragging = false end end)
+        end
+    end)
+    handle.InputChanged:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then dragInput = input end
+    end)
+    UserInputService.InputChanged:Connect(function(input)
+        if input == dragInput and dragging then
+            local d = input.Position - dragStart
+            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + d.X, startPos.Y.Scale, startPos.Y.Offset + d.Y)
+        end
+    end)
+end
+
+-- =============================================
+-- MAIN FRAME
+-- =============================================
+local InitialTransparency = 1 - (Settings.GuiTransparency / 500)
+
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 600, 0, 460)
+MainFrame.Position = UDim2.new(0.5, -300, 0.5, -230)
+MainFrame.BackgroundColor3 = Theme.Bg
+MainFrame.BackgroundTransparency = InitialTransparency
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = false
+MainFrame.Visible = true
+MainFrame.Parent = ScreenGui
+
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
+
+local mainStroke = Instance.new("UIStroke", MainFrame)
+mainStroke.Color = Theme.Border
+mainStroke.Thickness = 1.5
+mainStroke.Transparency = InitialTransparency + 0.2
+
+local topAccent = Instance.new("Frame")
+topAccent.Size = UDim2.new(0, 120, 0, 1)
+topAccent.Position = UDim2.new(0, 24, 0, 1)
+topAccent.BackgroundColor3 = Theme.Accent
+topAccent.BorderSizePixel = 0
+topAccent.ZIndex = 5
+topAccent.Parent = MainFrame
+
+local DragHandle = Instance.new("TextButton")
+DragHandle.Size = UDim2.new(1, 0, 0, 50); DragHandle.BackgroundTransparency = 1
+DragHandle.Text = ""; DragHandle.AutoButtonColor = false; DragHandle.ZIndex = 10; DragHandle.Parent = MainFrame
+makeDraggable(MainFrame, DragHandle)
+
+local mainGradient = Instance.new("UIGradient", MainFrame)
+mainGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(Theme.Bg.R*255 + 6, Theme.Bg.G*255 + 6, Theme.Bg.B*255 + 6)),
+    ColorSequenceKeypoint.new(1, Theme.Bg),
+})
+mainGradient.Rotation = 135
+
+local tl = Instance.new("TextLabel")
+tl.Size = UDim2.new(1, 0, 0, 22); tl.Position = UDim2.new(0, 24, 0, 14)
+tl.BackgroundTransparency = 1; tl.Text = "❄ SOU HUB"; tl.TextColor3 = Theme.Text
+tl.TextSize = 18; tl.Font = Enum.Font.GothamBold
+tl.TextXAlignment = Enum.TextXAlignment.Left; tl.ZIndex = 5; tl.Parent = MainFrame
+
+local cl = Instance.new("TextLabel")
+cl.Size = UDim2.new(1, 0, 0, 14); cl.Position = UDim2.new(0, 24, 0, 34)
+cl.BackgroundTransparency = 1; cl.Text = "TOUCHLINE EDITION"; cl.TextColor3 = Theme.SubText
+cl.TextSize = 9; cl.Font = Enum.Font.GothamSemibold
+cl.TextXAlignment = Enum.TextXAlignment.Left; cl.ZIndex = 5; cl.Parent = MainFrame
+
+local closeBtn = Instance.new("TextButton")
+closeBtn.Size = UDim2.new(0, 28, 0, 28)
+closeBtn.Position = UDim2.new(1, -38, 0, 12)
+closeBtn.BackgroundColor3 = Theme.Button
+closeBtn.BackgroundTransparency = 0.3
+closeBtn.BorderSizePixel = 0; closeBtn.Text = "×"
+closeBtn.TextColor3 = Theme.SubText; closeBtn.TextSize = 20
+closeBtn.Font = Enum.Font.Gotham; closeBtn.AutoButtonColor = false
+closeBtn.ZIndex = 11; closeBtn.Parent = MainFrame
+Instance.new("UICorner", closeBtn).CornerRadius = UDim.new(0, 4)
+closeBtn.MouseEnter:Connect(function()
+    tween(closeBtn, 0.15, {BackgroundColor3 = Color3.fromRGB(180, 50, 50), BackgroundTransparency = 0, TextColor3 = Color3.fromRGB(255,255,255)})
+end)
+closeBtn.MouseLeave:Connect(function()
+    tween(closeBtn, 0.15, {BackgroundColor3 = Theme.Button, BackgroundTransparency = 0.3, TextColor3 = Theme.SubText})
+end)
+closeBtn.MouseButton1Click:Connect(function()
+    MainFrame.Visible = false
+end)
+
+-- =============================================
+-- UI BUILDERS
+-- =============================================
+local function addToggle(parent, name, default, callback, order)
+    local row = Instance.new("Frame")
+    row.Size = UDim2.new(1, -16, 0, 36)
+    row.BackgroundTransparency = 1
+    row.LayoutOrder = order or 0
+    row.ZIndex = 3
+    row.Parent = parent
+    
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.BackgroundColor3 = Theme.Button
+    btn.BackgroundTransparency = 0.3
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.AutoButtonColor = false
+    btn.ZIndex = 3
+    btn.Parent = row
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 6)
+    
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size = UDim2.new(0.7, 0, 1, 0)
+    nameLbl.Position = UDim2.new(0, 14, 0, 0)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = name
+    nameLbl.TextColor3 = Theme.Text
+    nameLbl.TextSize = 12
+    nameLbl.Font = Enum.Font.GothamSemibold
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    nameLbl.ZIndex = 4
+    nameLbl.Parent = btn
+    
+    local stateLbl = Instance.new("TextLabel")
+    stateLbl.Size = UDim2.new(0, 50, 1, 0)
+    stateLbl.Position = UDim2.new(1, -60, 0, 0)
+    stateLbl.BackgroundTransparency = 1
+    stateLbl.Text = default and "ON" or "OFF"
+    stateLbl.TextColor3 = default and Theme.Accent or Theme.SubText
+    stateLbl.TextSize = 11
+    stateLbl.Font = Enum.Font.GothamBold
+    stateLbl.TextXAlignment = Enum.TextXAlignment.Right
+    stateLbl.ZIndex = 4
+    stateLbl.Parent = btn
+    
+    local state = default
+    local function doToggle()
+        state = not state
+        tween(btn, 0.2, {BackgroundColor3 = state and Color3.fromRGB(40, 70, 110) or Theme.Button})
+        tween(stateLbl, 0.2, {TextColor3 = state and Theme.Accent or Theme.SubText})
+        stateLbl.Text = state and "ON" or "OFF"
+        if callback then callback(state) end
+    end
+    btn.MouseButton1Click:Connect(doToggle)
+    
+    return function() return state end
+end
+
+local function addSlider(parent, name, min, max, default, callback, order)
+    local container = Instance.new("Frame")
+    container.Size = UDim2.new(1, -16, 0, 50)
+    container.BackgroundTransparency = 1
+    container.LayoutOrder = order or 0
+    container.ZIndex = 3
+    container.Parent = parent
+    
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.new(0.7, 0, 0, 18)
+    label.BackgroundTransparency = 1
+    label.Text = name
+    label.TextColor3 = Theme.Text
+    label.TextSize = 12
+    label.Font = Enum.Font.GothamSemibold
+    label.TextXAlignment = Enum.TextXAlignment.Left
+    label.ZIndex = 3
+    label.Parent = container
+    
+    local valueLbl = Instance.new("TextLabel")
+    valueLbl.Size = UDim2.new(0.3, 0, 0, 18)
+    valueLbl.Position = UDim2.new(0.7, 0, 0, 0)
+    valueLbl.BackgroundTransparency = 1
+    valueLbl.Text = string.format("%.2f", default)
+    valueLbl.TextColor3 = Theme.Accent
+    valueLbl.TextSize = 11
+    valueLbl.Font = Enum.Font.GothamBold
+    valueLbl.TextXAlignment = Enum.TextXAlignment.Right
+    valueLbl.ZIndex = 3
+    valueLbl.Parent = container
+    
+    local bg = Instance.new("TextButton")
+    bg.Size = UDim2.new(1, 0, 0, 10)
+    bg.Position = UDim2.new(0, 0, 0, 28)
+    bg.BackgroundColor3 = Theme.Button
+    bg.BackgroundTransparency = 0.3
+    bg.BorderSizePixel = 0
+    bg.Text = ""
+    bg.AutoButtonColor = false
+    bg.ZIndex = 3
+    bg.Parent = container
+    Instance.new("UICorner", bg).CornerRadius = UDim.new(1, 0)
+    
+    local fill = Instance.new("Frame")
+    fill.Size = UDim2.new((default-min)/(max-min), 0, 1, 0)
+    fill.BackgroundColor3 = Theme.Accent
+    fill.BorderSizePixel = 0
+    fill.ZIndex = 3
+    fill.Parent = bg
+    Instance.new("UICorner", fill).CornerRadius = UDim.new(1, 0)
+    
+    local knob = Instance.new("Frame")
+    knob.Size = UDim2.new(0, 14, 0, 14)
+    knob.AnchorPoint = Vector2.new(0.5, 0.5)
+    knob.Position = UDim2.new((default-min)/(max-min), 0, 0.5, 0)
+    knob.BackgroundColor3 = Color3.fromRGB(255, 255, 255)
+    knob.BorderSizePixel = 0
+    knob.ZIndex = 4
+    knob.Parent = bg
+    Instance.new("UICorner", knob).CornerRadius = UDim.new(1, 0)
+    
+    local value = default
+    local sliding = false
+    local function update(px)
+        local ax, as = bg.AbsolutePosition.X, bg.AbsoluteSize.X
+        if as == 0 then return end
+        local p = math.clamp((px - ax) / as, 0, 1)
+        value = min + (max - min) * p
+        fill.Size = UDim2.new(p, 0, 1, 0)
+        knob.Position = UDim2.new(p, 0, 0.5, 0)
+        valueLbl.Text = string.format("%.2f", value)
+        if callback then callback(value) end
+    end
+    bg.MouseButton1Down:Connect(function(x) sliding = true; update(x) end)
+    UserInputService.InputChanged:Connect(function(input)
+        if sliding and (input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch) then update(input.Position.X) end
+    end)
+    UserInputService.InputEnded:Connect(function(input)
+        if input.UserInputType == Enum.UserInputType.MouseButton1 then sliding = false end
+    end)
+    return function() return value end
+end
+
+local function addLabel(page, text, order)
+    local lbl = Instance.new("TextLabel")
+    lbl.Size = UDim2.new(1, -16, 0, 22)
+    lbl.BackgroundTransparency = 1
+    lbl.Text = text
+    lbl.TextColor3 = Theme.Accent
+    lbl.TextSize = 10
+    lbl.Font = Enum.Font.GothamBold
+    lbl.TextXAlignment = Enum.TextXAlignment.Left
+    lbl.LayoutOrder = order or 0
+    lbl.ZIndex = 3
+    lbl.Parent = page
+end
+
+-- =============================================
+-- CONTENT AREA
+-- =============================================
+local ContentArea = Instance.new("Frame")
+ContentArea.Size = UDim2.new(1, -20, 1, -70)
+ContentArea.Position = UDim2.new(0, 10, 0, 60)
+ContentArea.BackgroundTransparency = 1
+ContentArea.ZIndex = 3
+ContentArea.Parent = MainFrame
+
+-- =============================================
+-- MAIN PAGE
+-- =============================================
+local mainPage = Instance.new("ScrollingFrame")
+mainPage.Size = UDim2.new(1, 0, 1, 0)
+mainPage.BackgroundTransparency = 1
+mainPage.BorderSizePixel = 0
+mainPage.ScrollBarThickness = 3
+mainPage.ScrollBarImageColor3 = Theme.Accent
+mainPage.CanvasSize = UDim2.new(0, 0, 0, 0)
+mainPage.AutomaticCanvasSize = Enum.AutomaticSize.Y
+mainPage.ZIndex = 2
+mainPage.Active = true
+mainPage.Parent = ContentArea
+
+local layout = Instance.new("UIListLayout", mainPage)
+layout.SortOrder = Enum.SortOrder.LayoutOrder
+layout.Padding = UDim.new(0, 6)
+local pad = Instance.new("UIPadding", mainPage)
+pad.PaddingLeft = UDim.new(0, 4)
+pad.PaddingRight = UDim.new(0, 4)
+pad.PaddingTop = UDim.new(0, 4)
+
+addLabel(mainPage, "⚽ BALL CONTROL", 1)
+local getReach = addToggle(mainPage, "Reach", false, function(v) Settings.Reach = v end, 2)
+local getReachValue = addSlider(mainPage, "Reach Distance", 5, 100, 30, function(v) Settings.ReachValue = v end, 3)
+
+addLabel(mainPage, "⚽ BALL HITBOX", 4)
+local getBallHitbox = addToggle(mainPage, "Ball Hitbox", false, function(v) Settings.BallHitbox = v end, 5)
+local getBallSize = addSlider(mainPage, "Ball Size", 1.0, 5.0, 2.0, function(v) Settings.BallSize = v end, 6)
+
+addLabel(mainPage, "🥅 GOAL AIMBOT", 7)
+local getGoalAimbot = addToggle(mainPage, "Goal Aimbot", false, function(v) Settings.GoalAimbot = v end, 8)
+local getGoalStrength = addSlider(mainPage, "Aim Strength", 0.1, 1.0, 0.5, function(v) Settings.GoalAimStrength = v end, 9)
+
+addLabel(mainPage, "🧤 GOALKEEPER", 10)
+local getAutoDive = addToggle(mainPage, "Auto Dive", false, function(v) Settings.AutoDive = v end, 11)
+
+addLabel(mainPage, "🔮 PREDICTION", 12)
+local getPrediction = addToggle(mainPage, "Ball Prediction", false, function(v) Settings.Prediction = v end, 13)
+local getPredValue = addSlider(mainPage, "Predict Time", 0.1, 1.0, 0.3, function(v) Settings.PredictionValue = v end, 14)
+
+addLabel(mainPage, "🌍 WORLD", 15)
+local getFullbright = addToggle(mainPage, "Fullbright", false, function(v) Settings.Fullbright = v end, 16)
+
+-- =============================================
+-- BALL FONKSIYONLARI
+-- =============================================
+local function getBall()
+    local ball = workspace:FindFirstChild("Ball")
+    if not ball then ball = workspace:FindFirstChild("ball") end
+    if not ball then
+        for _, obj in ipairs(workspace:GetChildren()) do
+            if obj:IsA("BasePart") and (obj.Name:lower():find("ball") or obj.Name:lower():find("top")) then
+                ball = obj; break
+            end
+        end
+    end
+    return ball
+end
+
+local function getGoalPosition()
+    local goals = {}
+    for _, obj in ipairs(workspace:GetChildren()) do
+        if obj:IsA("BasePart") and (obj.Name:lower():find("goal") or obj.Name:lower():find("kale")) then
+            table.insert(goals, obj)
+        end
+    end
+    if #goals == 0 then return nil end
+    
+    -- Oyuncunun en uzak oldugu kaleyi sec (rakip kale)
+    if not LocalPlayer.Character then return goals[1] end
+    local hrp = LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if not hrp then return goals[1] end
+    
+    local furthest, maxDist = goals[1], 0
+    for _, g in ipairs(goals) do
+        local d = (g.Position - hrp.Position).Magnitude
+        if d > maxDist then maxDist = d; furthest = g end
+    end
+    return furthest
+end
+
+-- =============================================
+-- REACH SISTEMI
+-- =============================================
+local function applyReach()
+    if not Settings.Reach then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local ball = getBall()
+    if not ball then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local dist = (ball.Position - hrp.Position).Magnitude
+    if dist <= Settings.ReachValue and dist > 5 then
+        pcall(function()
+            -- Topu kendine cek
+            local dir = (hrp.Position - ball.Position).Unit
+            ball.Velocity = dir * 30
+        end)
+    end
+end
+
+-- =============================================
+-- BALL HITBOX
+-- =============================================
+local originalBallSize = nil
+
+local function applyBallHitbox()
+    local ball = getBall()
+    if not ball then return end
+    
+    if not originalBallSize then
+        originalBallSize = ball.Size
+    end
+    
+    if Settings.BallHitbox then
+        ball.Size = originalBallSize * Settings.BallSize
+        ball.Material = Enum.Material.Neon
+        ball.Transparency = 0.2
+    else
+        if originalBallSize then
+            ball.Size = originalBallSize
+            ball.Material = Enum.Material.Plastic
+            ball.Transparency = 0
+        end
+    end
+end
+
+-- =============================================
+-- GOAL AIMBOT
+-- =============================================
+local function applyGoalAimbot()
+    if not Settings.GoalAimbot then return end
+    local ball = getBall()
+    if not ball then return end
+    local goal = getGoalPosition()
+    if not goal then return end
+    
+    local dir = (goal.Position - ball.Position).Unit
+    local currentVel = ball.AssemblyLinearVelocity
+    if currentVel.Magnitude > 5 then
+        local targetVel = dir * currentVel.Magnitude
+        ball.Velocity = currentVel:Lerp(targetVel, Settings.GoalAimStrength)
+    end
+end
+
+-- =============================================
+-- AUTO DIVE (Kaleci)
+-- =============================================
+local function applyAutoDive()
+    if not Settings.AutoDive then return end
+    local char = LocalPlayer.Character
+    if not char then return end
+    local hum = char:FindFirstChildOfClass("Humanoid")
+    if not hum then return end
+    local ball = getBall()
+    if not ball then return end
+    local hrp = char:FindFirstChild("HumanoidRootPart")
+    if not hrp then return end
+    
+    local dist = (ball.Position - hrp.Position).Magnitude
+    local ballVel = ball.AssemblyLinearVelocity.Magnitude
+    
+    -- Top yaklasiyorsa ve hizliysa dal
+    if dist < 20 and ballVel > 10 then
+        pcall(function()
+            hum:ChangeState(Enum.HumanoidStateType.Jumping)
+        end)
+    end
+end
+
+-- =============================================
+-- PREDICTION
+-- =============================================
+local function applyPrediction()
+    if not Settings.Prediction then return end
+    local ball = getBall()
+    if not ball then return end
+    
+    -- Topun gelecekteki pozisyonunu goster (Highlight)
+    pcall(function()
+        local predHighlight = ball:FindFirstChild("PredHighlight")
+        if not predHighlight then
+            predHighlight = Instance.new("Highlight")
+            predHighlight.Name = "PredHighlight"
+            predHighlight.FillColor = Color3.fromRGB(255, 255, 0)
+            predHighlight.OutlineColor = Color3.fromRGB(255, 255, 0)
+            predHighlight.FillTransparency = 0.7
+            predHighlight.Parent = ball
+        end
+    end)
+end
+
+-- =============================================
+-- MAIN LOOP
+-- =============================================
+RunService.Heartbeat:Connect(function()
+    applyReach()
+    applyBallHitbox()
+    applyGoalAimbot()
+    applyAutoDive()
+    applyPrediction()
+end)
+
+-- Fullbright
+RunService.Heartbeat:Connect(function()
+    if Settings.Fullbright then
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.Brightness = 2
+    else
+        Lighting.Ambient = OriginalLighting.Ambient
+        Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
+        Lighting.Brightness = OriginalLighting.Brightness
+    end
+end)
+
+-- =============================================
+-- INPUT
+-- =============================================
+UserInputService.InputBegan:Connect(function(input, gpe)
+    if gpe then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+-- =============================================
+-- WATERMARK
+-- =============================================
+local Watermark = Instance.new("Frame")
+Watermark.Size = UDim2.new(0, 220, 0, 38)
+Watermark.Position = UDim2.new(0, 15, 0, 15)
+Watermark.BackgroundColor3 = Theme.Panel
+Watermark.BackgroundTransparency = 0.1
+Watermark.BorderSizePixel = 0
+Watermark.Visible = true
+Watermark.ZIndex = 500
+Watermark.Parent = ScreenGui
+Instance.new("UICorner", Watermark).CornerRadius = UDim.new(0, 6)
+local wmStroke = Instance.new("UIStroke", Watermark)
+wmStroke.Color = Theme.Border
+wmStroke.Thickness = 1
+makeDraggable(Watermark, Watermark)
+
+local wmTitle = Instance.new("TextLabel")
+wmTitle.Size = UDim2.new(1, 0, 0, 18)
+wmTitle.Position = UDim2.new(0, 12, 0, 8)
+wmTitle.BackgroundTransparency = 1
+wmTitle.Text = "❄ SOU HUB • TOUCHLINE"
+wmTitle.TextColor3 = Theme.Text
+wmTitle.TextSize = 10
+wmTitle.Font = Enum.Font.GothamBold
+wmTitle.TextXAlignment = Enum.TextXAlignment.Left
+wmTitle.ZIndex = 501
+wmTitle.Parent = Watermark
+
+local wmInfo = Instance.new("TextLabel")
+wmInfo.Size = UDim2.new(1, 0, 0, 12)
+wmInfo.Position = UDim2.new(0, 12, 0, 24)
+wmInfo.BackgroundTransparency = 1
+wmInfo.Text = "60 FPS  |  0 MS"
+wmInfo.TextColor3 = Theme.SubText
+wmInfo.TextSize = 9
+wmInfo.Font = Enum.Font.Code
+wmInfo.TextXAlignment = Enum.TextXAlignment.Left
+wmInfo.ZIndex = 501
+wmInfo.Parent = Watermark
+
+local fpsCount, fpsTime = 0, tick()
+RunService.RenderStepped:Connect(function()
+    fpsCount = fpsCount + 1
+    if tick() - fpsTime >= 1 then
+        local fps = fpsCount
+        local ping = 0
+        pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
+        wmInfo.Text = fps .. " FPS  |  " .. ping .. " MS"
+        fpsCount = 0
+        fpsTime = tick()
+    end
+end)
+
+-- =============================================
+-- BILDIRIM
+-- =============================================
+print("[SOU HUB] Touchline Edition yuklendi!")
+showToast("SOU HUB", "Touchline Edition hazir!", "success")
+task.wait(0.5)
+showToast("Touchline", "Reach + Ball Hitbox aktif", "info")
+
+pcall(function()
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "SOU HUB",
+        Text = "Touchline Edition loaded!",
+        Duration = 5
+    })
+end)
