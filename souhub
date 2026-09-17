@@ -1,15 +1,24 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION v3 (GERÇEK ÇALIŞAN)
+    SOU HUB - TOUCHLINE EDITION v3 (KESİN ÇALIŞAN)
 ]]
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local UserInputService = game:GetService("UserInputService")
 local Lighting = game:GetService("Lighting")
-local TweenService = game:GetService("TweenService")
 
 local LocalPlayer = Players.LocalPlayer
 local PlayerGui = LocalPlayer:WaitForChild("PlayerGui")
+
+-- =============================================
+-- ESKİ GUI'Yİ TEMİZLE
+-- =============================================
+pcall(function()
+    local old = PlayerGui:FindFirstChild("SOUHUB_Test")
+    if old then old:Destroy() end
+    local old2 = PlayerGui:FindFirstChild("SOUHUB_Touchline")
+    if old2 then old2:Destroy() end
+end)
 
 -- =============================================
 -- AYARLAR
@@ -26,36 +35,35 @@ local Settings = {
 }
 
 -- =============================================
--- TOP VE KALE BULMA (DOĞRU YÖNTEM)
+-- TOP BULMA (BASİT VE ETKİLİ)
 -- =============================================
+local ballCache = nil
+local ballCacheTime = 0
+
 local function findBall()
-    -- 1. En güvenilir yöntem: Shape'i Ball olan tüm parçaları tara
+    -- Cache kontrolü (0.5 saniye)
+    if ballCache and ballCache.Parent and (tick() - ballCacheTime) < 0.5 then
+        return ballCache
+    end
+    
+    -- Shape Ball olanları tara
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Shape == Enum.PartType.Ball then
-            -- Çok büyük veya çok küçük parçaları filtrele (saha, kale vb.)
             if obj.Size.X > 0.5 and obj.Size.X < 10 then
+                ballCache = obj
+                ballCacheTime = tick()
                 return obj
             end
         end
     end
     
-    -- 2. Yedek yöntem: Özel Mesh'i Sphere olan parçaları tara
+    -- İsimde ball/top geçenleri tara
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") then
-            local mesh = obj:FindFirstChildOfClass("SpecialMesh")
-            if mesh and mesh.MeshType == Enum.MeshType.Sphere then
-                if obj.Size.X > 0.5 and obj.Size.X < 10 then
-                    return obj
-                end
-            end
-        end
-    end
-    
-    -- 3. Son çare: İsimde ball/top geçen parçaları tara
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local name = obj.Name:lower()
-            if name == "ball" or name == "top" or name:find("ball") or name:find("top") then
+            local n = obj.Name:lower()
+            if n == "ball" or n == "top" then
+                ballCache = obj
+                ballCacheTime = tick()
                 return obj
             end
         end
@@ -64,256 +72,124 @@ local function findBall()
     return nil
 end
 
-local function findGoal()
-    -- Kale genelde büyük bir model, içinde "Goal" veya "Net" geçen partlar var
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local name = obj.Name:lower()
-            if name:find("goal") or name:find("kale") or name:find("net") then
-                return obj
-            end
-        end
-    end
-    return nil
-end
+-- =============================================
+-- GUI OLUŞTUR
+-- =============================================
+local ScreenGui = Instance.new("ScreenGui")
+ScreenGui.Name = "SOUHUB_Test"
+ScreenGui.ResetOnSpawn = false
+ScreenGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+ScreenGui.DisplayOrder = 999999
+ScreenGui.IgnoreGuiInset = true
+ScreenGui.Enabled = true
+ScreenGui.Parent = PlayerGui
 
--- =============================================
--- ESP SİSTEMİ (HIGHLIGHT KULLANARAK - DOĞRU YÖNTEM)
--- =============================================
--- Highlight, 3D dünyada çalışır ve BasePart'a parent'lanır [citation:19]
-local ballHighlight = nil
-local goalHighlight = nil
+local MainFrame = Instance.new("Frame")
+MainFrame.Name = "MainFrame"
+MainFrame.Size = UDim2.new(0, 320, 0, 420)
+MainFrame.Position = UDim2.new(0.5, -160, 0.5, -210)
+MainFrame.BackgroundColor3 = Color3.fromRGB(20, 30, 50)
+MainFrame.BackgroundTransparency = 0.05
+MainFrame.BorderSizePixel = 0
+MainFrame.Active = true
+MainFrame.Draggable = true -- KRİTİK: Sürüklenebilir yapar
+MainFrame.Visible = true
+MainFrame.ZIndex = 100
+MainFrame.Parent = ScreenGui
 
-local function updateESP()
-    local ball = findBall()
-    
-    -- Ball ESP
-    if Settings.BallESP and ball then
-        if not ballHighlight or ballHighlight.Parent ~= ball then
-            if ballHighlight then ballHighlight:Destroy() end
-            
-            ballHighlight = Instance.new("Highlight")
-            ballHighlight.Name = "SOUHUB_BallESP"
-            ballHighlight.FillColor = Settings.BallESPColor
-            ballHighlight.OutlineColor = Settings.BallESPColor
-            ballHighlight.FillTransparency = 0.5
-            ballHighlight.OutlineTransparency = 0
-            ballHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
-            ballHighlight.Adornee = ball
-            ballHighlight.Parent = ball
-        end
-        if ballHighlight then
-            ballHighlight.FillColor = Settings.BallESPColor
-            ballHighlight.OutlineColor = Settings.BallESPColor
-        end
-    else
-        if ballHighlight then ballHighlight:Destroy() ballHighlight = nil end
-    end
-    
-    -- Ball Hitbox ESP (BoxHandleAdornment - doğru parent: ball)
-    if Settings.BallHitboxESP and ball then
-        if not ball:FindFirstChild("SOUHUB_BallHitboxBox") then
-            local box = Instance.new("BoxHandleAdornment")
-            box.Name = "SOUHUB_BallHitboxBox"
-            box.Adornee = ball
-            box.Size = ball.Size + Vector3.new(0.2, 0.2, 0.2)
-            box.Color3 = Settings.BallHitboxESPColor
-            box.Transparency = 0.5
-            box.AlwaysOnTop = true
-            box.Shading = Enum.AdornShading.XRayShaded -- Duvarların içinden görünür [citation:22]
-            box.Parent = ball -- DOĞRU: Ball'a parent'la
-        else
-            local box = ball:FindFirstChild("SOUHUB_BallHitboxBox")
-            if box then
-                box.Size = ball.Size + Vector3.new(0.2, 0.2, 0.2)
-                box.Color3 = Settings.BallHitboxESPColor
-            end
-        end
-    else
-        if ball then
-            local box = ball:FindFirstChild("SOUHUB_BallHitboxBox")
-            if box then box:Destroy() end
-        end
-    end
-end
+Instance.new("UICorner", MainFrame).CornerRadius = UDim.new(0, 8)
 
--- =============================================
--- REACH (Topa dokunma mesafesini artır)
--- =============================================
-RunService.Heartbeat:Connect(function()
-    if not Settings.Reach then return end
-    local ball = findBall()
-    if not ball then return end
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    -- Top çok uzaksa biraz yaklaştır (reach etkisi)
-    local dist = (hrp.Position - ball.Position).Magnitude
-    if dist > Settings.ReachValue and dist < 50 then
-        -- Burada topu çekmek yerine karakteri yaklaştırabiliriz
-        -- ama çok agresif olmamalı
-    end
-end)
-
--- =============================================
--- BALL HITBOX (Topu büyüt)
--- =============================================
-local originalBallSize = nil
-
-RunService.Heartbeat:Connect(function()
-    local ball = findBall()
-    if not ball then return end
-    
-    if Settings.BallHitbox then
-        if not originalBallSize then originalBallSize = ball.Size end
-        local s = Settings.BallSize
-        ball.Size = Vector3.new(s, s, s)
-    else
-        if originalBallSize and ball.Size ~= originalBallSize then
-            ball.Size = originalBallSize
-            originalBallSize = nil
-        end
-    end
-end)
-
--- =============================================
--- GOAL AIMBOT
--- =============================================
-RunService.RenderStepped:Connect(function()
-    if not Settings.GoalAimbot then return end
-    local ball = findBall()
-    local goal = findGoal()
-    if not ball or not goal then return end
-    
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local dist = (hrp.Position - ball.Position).Magnitude
-    if dist < 30 then
-        local targetCF = CFrame.new(ball.Position, goal.Position)
-        ball.CFrame = ball.CFrame:Lerp(targetCF, Settings.GoalAimStrength * 0.1)
-    end
-end)
-
--- =============================================
--- AUTO DIVE
--- =============================================
-RunService.Heartbeat:Connect(function()
-    if not Settings.AutoDive then return end
-    local ball = findBall()
-    if not ball then return end
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local dist = (hrp.Position - ball.Position).Magnitude
-    if dist < 25 then
-        local goal = findGoal()
-        if goal then
-            local dir = (goal.Position - hrp.Position).Unit
-            hrp.CFrame = CFrame.new(hrp.Position, hrp.Position + dir)
-        end
-    end
-end)
-
--- =============================================
--- FULLBRIGHT
--- =============================================
-local origAmbient, origOutdoor, origBright = Lighting.Ambient, Lighting.OutdoorAmbient, Lighting.Brightness
-
-RunService.Heartbeat:Connect(function()
-    if Settings.Fullbright then
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-        Lighting.Brightness = 2
-    else
-        Lighting.Ambient = origAmbient
-        Lighting.OutdoorAmbient = origOutdoor
-        Lighting.Brightness = origBright
-    end
-end)
-
--- =============================================
--- RENDER LOOP
--- =============================================
-RunService.RenderStepped:Connect(function()
-    updateESP()
-end)
-
--- =============================================
--- BASİT GUI (Sadece test için)
--- =============================================
-local gui = Instance.new("ScreenGui")
-gui.Name = "SOUHUB_Test"
-gui.ResetOnSpawn = false
-gui.Parent = PlayerGui
-
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 300, 0, 400)
-frame.Position = UDim2.new(0.5, -150, 0.5, -200)
-frame.BackgroundColor3 = Color3.fromRGB(20, 30, 50)
-frame.Parent = gui
-
+-- Başlık
 local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0, 40)
+title.Size = UDim2.new(1, 0, 0, 30)
+title.Position = UDim2.new(0, 0, 0, 10)
+title.BackgroundTransparency = 1
 title.Text = "SOU HUB v3"
 title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.BackgroundTransparency = 1
-title.Parent = frame
+title.TextSize = 16
+title.Font = Enum.Font.GothamBold
+title.ZIndex = 101
+title.Parent = MainFrame
 
--- DEBUG: Top bulundu mu?
+-- Debug etiketi (top bulundu mu?)
 local debugLabel = Instance.new("TextLabel")
-debugLabel.Size = UDim2.new(1, -20, 0, 30)
-debugLabel.Position = UDim2.new(0, 10, 0, 45)
+debugLabel.Size = UDim2.new(1, -20, 0, 24)
+debugLabel.Position = UDim2.new(0, 10, 0, 40)
 debugLabel.BackgroundTransparency = 1
+debugLabel.Text = "Etiket"
 debugLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-debugLabel.TextSize = 12
+debugLabel.TextSize = 11
+debugLabel.Font = Enum.Font.Gotham
 debugLabel.TextXAlignment = Enum.TextXAlignment.Left
-debugLabel.Parent = frame
+debugLabel.ZIndex = 101
+debugLabel.Parent = MainFrame
 
--- Butonlar
-local yPos = 80
-local function addBtn(text, callback)
+-- Buton listesi
+local buttonY = 70
+local function createButton(text, callback)
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, -20, 0, 30)
-    btn.Position = UDim2.new(0, 10, 0, yPos)
-    btn.Text = text
+    btn.Size = UDim2.new(1, -20, 0, 32)
+    btn.Position = UDim2.new(0, 10, 0, buttonY)
     btn.BackgroundColor3 = Color3.fromRGB(40, 70, 110)
+    btn.BorderSizePixel = 0
+    btn.Text = text
     btn.TextColor3 = Color3.fromRGB(255, 255, 255)
-    btn.Parent = frame
+    btn.TextSize = 12
+    btn.Font = Enum.Font.GothamSemibold
+    btn.AutoButtonColor = true
+    btn.ZIndex = 102
+    btn.Parent = MainFrame
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0, 5)
     btn.MouseButton1Click:Connect(callback)
-    yPos = yPos + 35
+    buttonY = buttonY + 38
     return btn
 end
 
-local ballEspBtn = addBtn("Ball ESP: KAPALI", function()
+local ballEspBtn = createButton("Ball ESP: KAPALI", function()
     Settings.BallESP = not Settings.BallESP
-    ballEspBtn.Text = "Ball ESP: " .. (Settings.BallESP and "AÇIK" or "KAPALI")
+    ballEspBtn.Text = "Ball ESP: " .. (Settings.BallESP and "ACIK" or "KAPALI")
+    ballEspBtn.BackgroundColor3 = Settings.BallESP and Color3.fromRGB(80, 200, 130) or Color3.fromRGB(40, 70, 110)
 end)
 
-local ballHitboxEspBtn = addBtn("Ball Hitbox ESP: KAPALI", function()
+local ballHitboxEspBtn = createButton("Ball Hitbox ESP: KAPALI", function()
     Settings.BallHitboxESP = not Settings.BallHitboxESP
-    ballHitboxEspBtn.Text = "Ball Hitbox ESP: " .. (Settings.BallHitboxESP and "AÇIK" or "KAPALI")
+    ballHitboxEspBtn.Text = "Ball Hitbox ESP: " .. (Settings.BallHitboxESP and "ACIK" or "KAPALI")
+    ballHitboxEspBtn.BackgroundColor3 = Settings.BallHitboxESP and Color3.fromRGB(80, 200, 130) or Color3.fromRGB(40, 70, 110)
 end)
 
-local ballHitboxBtn = addBtn("Ball Hitbox (Büyüt): KAPALI", function()
+local ballHitboxBtn = createButton("Ball Hitbox: KAPALI", function()
     Settings.BallHitbox = not Settings.BallHitbox
-    ballHitboxBtn.Text = "Ball Hitbox: " .. (Settings.BallHitbox and "AÇIK" or "KAPALI")
+    ballHitboxBtn.Text = "Ball Hitbox: " .. (Settings.BallHitbox and "ACIK" or "KAPALI")
+    ballHitboxBtn.BackgroundColor3 = Settings.BallHitbox and Color3.fromRGB(80, 200, 130) or Color3.fromRGB(40, 70, 110)
 end)
 
-local fullbrightBtn = addBtn("Fullbright: KAPALI", function()
+local fullbrightBtn = createButton("Fullbright: KAPALI", function()
     Settings.Fullbright = not Settings.Fullbright
-    fullbrightBtn.Text = "Fullbright: " .. (Settings.Fullbright and "AÇIK" or "KAPALI")
+    fullbrightBtn.Text = "Fullbright: " .. (Settings.Fullbright and "ACIK" or "KAPALI")
+    fullbrightBtn.BackgroundColor3 = Settings.Fullbright and Color3.fromRGB(80, 200, 130) or Color3.fromRGB(40, 70, 110)
 end)
 
--- Debug güncelleme
+local reachBtn = createButton("Reach: KAPALI", function()
+    Settings.Reach = not Settings.Reach
+    reachBtn.Text = "Reach: " .. (Settings.Reach and "ACIK" or "KAPALI")
+    reachBtn.BackgroundColor3 = Settings.Reach and Color3.fromRGB(80, 200, 130) or Color3.fromRGB(40, 70, 110)
+end)
+
+local goalAimBtn = createButton("Goal Aimbot: KAPALI", function()
+    Settings.GoalAimbot = not Settings.GoalAimbot
+    goalAimBtn.Text = "Goal Aimbot: " .. (Settings.GoalAimbot and "ACIK" or "KAPALI")
+    goalAimBtn.BackgroundColor3 = Settings.GoalAimbot and Color3.fromRGB(80, 200, 130) or Color3.fromRGB(40, 70, 110)
+end)
+
+local autoDiveBtn = createButton("Auto Dive: KAPALI", function()
+    Settings.AutoDive = not Settings.AutoDive
+    autoDiveBtn.Text = "Auto Dive: " .. (Settings.AutoDive and "ACIK" or "KAPALI")
+    autoDiveBtn.BackgroundColor3 = Settings.AutoDive and Color3.fromRGB(80, 200, 130) or Color3.fromRGB(40, 70, 110)
+end)
+
+-- Debug güncelleme döngüsü
 task.spawn(function()
-    while gui.Parent do
+    while MainFrame.Parent do
         local ball = findBall()
         if ball then
             debugLabel.Text = "TOP: " .. ball:GetFullName() .. " | Size: " .. tostring(math.floor(ball.Size.X*10)/10)
@@ -322,8 +198,127 @@ task.spawn(function()
             debugLabel.Text = "TOP BULUNAMADI!"
             debugLabel.TextColor3 = Color3.fromRGB(255, 80, 80)
         end
-        task.wait(0.5)
+        task.wait(0.3)
     end
 end)
 
-print("[SOU HUB v3] Yüklendi!")
+-- =============================================
+-- ESP SİSTEMİ (HIGHLIGHT + BOXHANDLEADORNMENT)
+-- =============================================
+local ballHighlight = nil
+local ballHitboxBox = nil
+
+local function updateESP()
+    local ball = findBall()
+    
+    -- Ball ESP (Highlight)
+    if Settings.BallESP and ball then
+        if not ballHighlight or ballHighlight.Parent ~= ball then
+            if ballHighlight then ballHighlight:Destroy() end
+            ballHighlight = Instance.new("Highlight")
+            ballHighlight.FillColor = Settings.BallESPColor
+            ballHighlight.OutlineColor = Settings.BallESPColor
+            ballHighlight.FillTransparency = 0.5
+            ballHighlight.OutlineTransparency = 0
+            ballHighlight.DepthMode = Enum.HighlightDepthMode.AlwaysOnTop
+            ballHighlight.Adornee = ball
+            ballHighlight.Parent = ball
+        end
+    else
+        if ballHighlight then ballHighlight:Destroy() ballHighlight = nil end
+    end
+    
+    -- Ball Hitbox ESP (BoxHandleAdornment)
+    if Settings.BallHitboxESP and ball then
+        if not ballHitboxBox or ballHitboxBox.Parent ~= ball then
+            if ballHitboxBox then ballHitboxBox:Destroy() end
+            ballHitboxBox = Instance.new("BoxHandleAdornment")
+            ballHitboxBox.Name = "SOUHUB_HitboxBox"
+            ballHitboxBox.Adornee = ball
+            ballHitboxBox.Size = ball.Size + Vector3.new(0.3, 0.3, 0.3)
+            ballHitboxBox.Color3 = Settings.BallHitboxESPColor
+            ballHitboxBox.Transparency = 0.4
+            ballHitboxBox.AlwaysOnTop = true
+            ballHitboxBox.ZIndex = 5
+            ballHitboxBox.Parent = ball
+        else
+            ballHitboxBox.Size = ball.Size + Vector3.new(0.3, 0.3, 0.3)
+            ballHitboxBox.Color3 = Settings.BallHitboxESPColor
+        end
+    else
+        if ballHitboxBox then ballHitboxBox:Destroy() ballHitboxBox = nil end
+    end
+end
+
+-- =============================================
+-- BALL HITBOX (Topu büyüt)
+-- =============================================
+local originalBallSize = nil
+local originalBallPart = nil
+
+-- =============================================
+-- ANA DÖNGÜ
+-- =============================================
+RunService.RenderStepped:Connect(function()
+    updateESP()
+    
+    local ball = findBall()
+    
+    -- Ball Hitbox (büyütme)
+    if ball then
+        if Settings.BallHitbox then
+            if originalBallPart ~= ball then
+                originalBallPart = ball
+                originalBallSize = ball.Size
+            end
+            local s = Settings.BallSize
+            ball.Size = Vector3.new(s, s, s)
+        else
+            if originalBallPart and originalBallSize then
+                pcall(function() originalBallPart.Size = originalBallSize end)
+                originalBallPart = nil
+                originalBallSize = nil
+            end
+        end
+    end
+    
+    -- Fullbright
+    if Settings.Fullbright then
+        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
+        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
+        Lighting.Brightness = 2
+    end
+    
+    -- Goal Aimbot
+    if Settings.GoalAimbot and ball then
+        local char = LocalPlayer.Character
+        if char then
+            local hrp = char:FindFirstChild("HumanoidRootPart")
+            if hrp then
+                local dist = (hrp.Position - ball.Position).Magnitude
+                if dist < 30 then
+                    -- Kale yönünü bul
+                    for _, obj in ipairs(workspace:GetDescendants()) do
+                        if obj:IsA("BasePart") and (obj.Name:lower():find("goal") or obj.Name:lower():find("kale")) then
+                            local targetCF = CFrame.new(ball.Position, obj.Position)
+                            ball.CFrame = ball.CFrame:Lerp(targetCF, Settings.GoalAimStrength * 0.1)
+                            break
+                        end
+                    end
+                end
+            end
+        end
+    end
+end)
+
+-- =============================================
+-- GUI AÇ/KAPAT
+-- =============================================
+UserInputService.InputBegan:Connect(function(input, gp)
+    if gp then return end
+    if input.KeyCode == Enum.KeyCode.RightShift then
+        MainFrame.Visible = not MainFrame.Visible
+    end
+end)
+
+print("[SOU HUB v3] Yüklendi! RightShift ile GUI aç/kapat")
