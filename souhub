@@ -1,5 +1,5 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION v9 (GÜZEL + ÇALIŞAN)
+    SOU HUB - TOUCHLINE EDITION v10 (YESIL NOKTA + CEMBER HITBOX + CANCOLLIDE OFF)
 ]]
 
 local Players = game:GetService("Players")
@@ -57,7 +57,7 @@ local function findBall()
     end
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Shape == Enum.PartType.Ball then
-            if obj.Size.X > 0.5 and obj.Size.X < 10 then return obj end
+            if obj.Size.X > 0.5 and obj.Size.X < 30 then return obj end
         end
     end
     return nil
@@ -74,7 +74,7 @@ local function findGoal()
 end
 
 -- =============================================
--- GUI (GÜZELLEŞTİRİLMİŞ)
+-- GUI
 -- =============================================
 local ScreenGui = Instance.new("ScreenGui")
 ScreenGui.Name = "SOUHUB_Test"
@@ -86,8 +86,8 @@ ScreenGui.Parent = PlayerGui
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 340, 0, 560)
-MainFrame.Position = UDim2.new(0.5, -170, 0.5, -280)
+MainFrame.Size = UDim2.new(0, 340, 0, 600)
+MainFrame.Position = UDim2.new(0.5, -170, 0.5, -300)
 MainFrame.BackgroundColor3 = Color3.fromRGB(12, 20, 38)
 MainFrame.BorderSizePixel = 0
 MainFrame.Active = true
@@ -99,7 +99,6 @@ local mainStroke = Instance.new("UIStroke", MainFrame)
 mainStroke.Color = Color3.fromRGB(50, 80, 120)
 mainStroke.Thickness = 1.5
 
--- GRADIENT
 local grad = Instance.new("UIGradient", MainFrame)
 grad.Color = ColorSequence.new({
     ColorSequenceKeypoint.new(0, Color3.fromRGB(15, 28, 50)),
@@ -107,7 +106,7 @@ grad.Color = ColorSequence.new({
 })
 grad.Rotation = 135
 
--- BAŞLIK ÇUBUĞU
+-- BAŞLIK
 local titleBar = Instance.new("Frame")
 titleBar.Size = UDim2.new(1, 0, 0, 45)
 titleBar.BackgroundColor3 = Color3.fromRGB(20, 35, 60)
@@ -117,7 +116,6 @@ titleBar.ZIndex = 110
 titleBar.Parent = MainFrame
 Instance.new("UICorner", titleBar).CornerRadius = UDim.new(0, 10)
 
--- Başlık alt çizgisi (accent)
 local accentLine = Instance.new("Frame")
 accentLine.Size = UDim2.new(0, 100, 0, 2)
 accentLine.Position = UDim2.new(0, 15, 1, -2)
@@ -142,7 +140,7 @@ local subtitleLbl = Instance.new("TextLabel")
 subtitleLbl.Size = UDim2.new(1, -60, 0, 14)
 subtitleLbl.Position = UDim2.new(0, 15, 0, 26)
 subtitleLbl.BackgroundTransparency = 1
-subtitleLbl.Text = "v9 - TOUCHLINE"
+subtitleLbl.Text = "v10 - TOUCHLINE"
 subtitleLbl.TextColor3 = Color3.fromRGB(140, 165, 195)
 subtitleLbl.TextSize = 9
 subtitleLbl.Font = Enum.Font.GothamSemibold
@@ -150,7 +148,6 @@ subtitleLbl.TextXAlignment = Enum.TextXAlignment.Left
 subtitleLbl.ZIndex = 111
 subtitleLbl.Parent = titleBar
 
--- KAPAT BUTONU
 local closeBtn = Instance.new("TextButton")
 closeBtn.Size = UDim2.new(0, 28, 0, 28)
 closeBtn.Position = UDim2.new(1, -36, 0, 8)
@@ -181,7 +178,7 @@ debugLabel.ZIndex = 111
 debugLabel.Parent = MainFrame
 
 -- =============================================
--- BUTON OLUŞTURMA (MOUSEDOWN KİLİTLİ)
+-- BUTON OLUŞTURMA (YEŞİL NOKTA İLE)
 -- =============================================
 local mouseDown = false
 UserInputService.InputEnded:Connect(function(input)
@@ -196,10 +193,7 @@ local function createButton(text, callback, yPos)
     btn.Position = UDim2.new(0, 8, 0, yPos)
     btn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
     btn.BorderSizePixel = 0
-    btn.Text = text
-    btn.TextColor3 = Color3.fromRGB(220, 235, 250)
-    btn.TextSize = 12
-    btn.Font = Enum.Font.GothamSemibold
+    btn.Text = ""
     btn.AutoButtonColor = false
     btn.Active = true
     btn.ZIndex = 105
@@ -209,9 +203,43 @@ local function createButton(text, callback, yPos)
     stroke.Color = Color3.fromRGB(50, 80, 120)
     stroke.Thickness = 1
     
-    -- HOVER EFEKTİ
+    -- YEŞİL NOKTA (aktifken yanar)
+    local indicator = Instance.new("Frame")
+    indicator.Name = "Indicator"
+    indicator.Size = UDim2.new(0, 8, 0, 8)
+    indicator.Position = UDim2.new(0, 10, 0.5, -4)
+    indicator.BackgroundColor3 = Color3.fromRGB(80, 255, 130)
+    indicator.BorderSizePixel = 0
+    indicator.Visible = false
+    indicator.ZIndex = 106
+    indicator.Parent = btn
+    Instance.new("UICorner", indicator).CornerRadius = UDim.new(1, 0)
+    
+    -- Parlama efekti
+    local glow = Instance.new("UIStroke", indicator)
+    glow.Color = Color3.fromRGB(80, 255, 130)
+    glow.Thickness = 2
+    glow.Transparency = 0.5
+    
+    -- Metin
+    local textLbl = Instance.new("TextLabel")
+    textLbl.Name = "TextLbl"
+    textLbl.Size = UDim2.new(1, -30, 1, 0)
+    textLbl.Position = UDim2.new(0, 25, 0, 0)
+    textLbl.BackgroundTransparency = 1
+    textLbl.Text = text
+    textLbl.TextColor3 = Color3.fromRGB(220, 235, 250)
+    textLbl.TextSize = 12
+    textLbl.Font = Enum.Font.GothamSemibold
+    textLbl.TextXAlignment = Enum.TextXAlignment.Left
+    textLbl.ZIndex = 106
+    textLbl.Parent = btn
+    
+    -- HOVER
     btn.MouseEnter:Connect(function()
-        btn.BackgroundColor3 = Color3.fromRGB(38, 60, 95)
+        if not btn:GetAttribute("Active") then
+            btn.BackgroundColor3 = Color3.fromRGB(38, 60, 95)
+        end
     end)
     btn.MouseLeave:Connect(function()
         if not btn:GetAttribute("Active") then
@@ -219,28 +247,28 @@ local function createButton(text, callback, yPos)
         end
     end)
     
-    -- MOUSEDOWN KİLİTLİ TIKLAMA
+    -- TIKLAMA
     btn.MouseButton1Down:Connect(function()
         if mouseDown then return end
         mouseDown = true
         callback()
     end)
     
-    return btn
-end
-
--- =============================================
--- TOGGLE BUTONU (AKTİF/PASİF RENGİ)
--- =============================================
-local function makeToggle(btn, stateVar)
-    local isOn = Settings[stateVar] or false
-    if isOn then
-        btn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        btn:SetAttribute("Active", true)
-    else
-        btn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        btn:SetAttribute("Active", false)
+    -- Buton durumunu ayarla
+    function btn:SetActive(active)
+        self:SetAttribute("Active", active)
+        if active then
+            self.BackgroundColor3 = Color3.fromRGB(35, 75, 60)
+            indicator.Visible = true
+            textLbl.TextColor3 = Color3.fromRGB(255, 255, 255)
+        else
+            self.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
+            indicator.Visible = false
+            textLbl.TextColor3 = Color3.fromRGB(220, 235, 250)
+        end
     end
+    
+    return btn, textLbl
 end
 
 -- =============================================
@@ -249,46 +277,32 @@ end
 local y = 70
 
 -- === BALL CONTROL ===
-local section1 = Instance.new("TextLabel")
-section1.Size = UDim2.new(1, -16, 0, 18)
-section1.Position = UDim2.new(0, 8, 0, y)
-section1.BackgroundTransparency = 1
-section1.Text = "BALL CONTROL"
-section1.TextColor3 = Color3.fromRGB(140, 200, 255)
-section1.TextSize = 10
-section1.Font = Enum.Font.GothamBold
-section1.TextXAlignment = Enum.TextXAlignment.Left
-section1.ZIndex = 105
-section1.Parent = MainFrame
+local s1 = Instance.new("TextLabel")
+s1.Size = UDim2.new(1, -16, 0, 18)
+s1.Position = UDim2.new(0, 8, 0, y)
+s1.BackgroundTransparency = 1
+s1.Text = "BALL CONTROL"
+s1.TextColor3 = Color3.fromRGB(140, 200, 255)
+s1.TextSize = 10
+s1.Font = Enum.Font.GothamBold
+s1.TextXAlignment = Enum.TextXAlignment.Left
+s1.ZIndex = 105
+s1.Parent = MainFrame
 y = y + 22
 
-local reachBtn = createButton("Reach", function()
+local reachBtn, reachTxt = createButton("Reach", function()
     Settings.Reach = not Settings.Reach
-    if Settings.Reach then
-        reachBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        reachBtn:SetAttribute("Active", true)
-        reachBtn.Text = "Reach  [ON]"
-    else
-        reachBtn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        reachBtn:SetAttribute("Active", false)
-        reachBtn.Text = "Reach"
-    end
+    reachBtn:SetActive(Settings.Reach)
+    reachTxt.Text = Settings.Reach and "Reach  [ON]" or "Reach"
 end, y); y = y + 44
 
-local ballHitboxBtn = createButton("Ball Hitbox (Buyut)", function()
+local ballHitboxBtn, ballHitboxTxt = createButton("Ball Hitbox (Buyut)", function()
     Settings.BallHitbox = not Settings.BallHitbox
-    if Settings.BallHitbox then
-        ballHitboxBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        ballHitboxBtn:SetAttribute("Active", true)
-        ballHitboxBtn.Text = "Ball Hitbox (Buyut)  [ON]"
-    else
-        ballHitboxBtn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        ballHitboxBtn:SetAttribute("Active", false)
-        ballHitboxBtn.Text = "Ball Hitbox (Buyut)"
-    end
+    ballHitboxBtn:SetActive(Settings.BallHitbox)
+    ballHitboxTxt.Text = Settings.BallHitbox and "Ball Hitbox (Buyut)  [ON]" or "Ball Hitbox (Buyut)"
 end, y); y = y + 44
 
--- Ball Size Slider
+-- BALL SIZE SLIDER (1.0 - 20.0)
 local sizeLabel = Instance.new("TextLabel")
 sizeLabel.Size = UDim2.new(1, -16, 0, 14)
 sizeLabel.Position = UDim2.new(0, 8, 0, y)
@@ -315,7 +329,7 @@ sizeBg.Parent = MainFrame
 Instance.new("UICorner", sizeBg).CornerRadius = UDim.new(1, 0)
 
 local sizeFill = Instance.new("Frame")
-sizeFill.Size = UDim2.new(0.11, 0, 1, 0)
+sizeFill.Size = UDim2.new(0.05, 0, 1, 0)
 sizeFill.BackgroundColor3 = Color3.fromRGB(140, 200, 255)
 sizeFill.BorderSizePixel = 0
 sizeFill.ZIndex = 106
@@ -327,7 +341,7 @@ local function updateSize(px)
     local ax, as = sizeBg.AbsolutePosition.X, sizeBg.AbsoluteSize.X
     if as == 0 then return end
     local p = math.clamp((px - ax) / as, 0, 1)
-    local val = 1.0 + (10.0 - 1.0) * p
+    local val = 1.0 + (20.0 - 1.0) * p
     Settings.BallSize = val
     sizeFill.Size = UDim2.new(p, 0, 1, 0)
     sizeLabel.Text = "Ball Size: " .. string.format("%.1f", val)
@@ -344,30 +358,23 @@ end)
 y = y + 22
 
 -- === BALL ESP ===
-local section2 = Instance.new("TextLabel")
-section2.Size = UDim2.new(1, -16, 0, 18)
-section2.Position = UDim2.new(0, 8, 0, y)
-section2.BackgroundTransparency = 1
-section2.Text = "BALL ESP"
-section2.TextColor3 = Color3.fromRGB(140, 200, 255)
-section2.TextSize = 10
-section2.Font = Enum.Font.GothamBold
-section2.TextXAlignment = Enum.TextXAlignment.Left
-section2.ZIndex = 105
-section2.Parent = MainFrame
+local s2 = Instance.new("TextLabel")
+s2.Size = UDim2.new(1, -16, 0, 18)
+s2.Position = UDim2.new(0, 8, 0, y)
+s2.BackgroundTransparency = 1
+s2.Text = "BALL ESP"
+s2.TextColor3 = Color3.fromRGB(140, 200, 255)
+s2.TextSize = 10
+s2.Font = Enum.Font.GothamBold
+s2.TextXAlignment = Enum.TextXAlignment.Left
+s2.ZIndex = 105
+s2.Parent = MainFrame
 y = y + 22
 
-local ballEspBtn = createButton("Ball ESP", function()
+local ballEspBtn, ballEspTxt = createButton("Ball ESP", function()
     Settings.BallESP = not Settings.BallESP
-    if Settings.BallESP then
-        ballEspBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        ballEspBtn:SetAttribute("Active", true)
-        ballEspBtn.Text = "Ball ESP  [ON]"
-    else
-        ballEspBtn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        ballEspBtn:SetAttribute("Active", false)
-        ballEspBtn.Text = "Ball ESP"
-    end
+    ballEspBtn:SetActive(Settings.BallESP)
+    ballEspTxt.Text = Settings.BallESP and "Ball ESP  [ON]" or "Ball ESP"
 end, y); y = y + 44
 
 -- ESP Color Cycle
@@ -416,6 +423,7 @@ colorBtn.MouseButton1Down:Connect(function()
     local key = ColorKeys[colorIdx]
     Settings.BallESPColor = ColorPalette[key]
     Settings.BallHitboxESPColor = ColorPalette[key]
+    Settings.HitboxESPColor = ColorPalette[key]
     colorValLbl.Text = key
     colorValLbl.TextColor3 = ColorPalette[key]
     task.wait(0.15)
@@ -424,113 +432,77 @@ end)
 y = y + 38
 
 -- === BALL HITBOX ESP ===
-local section3 = Instance.new("TextLabel")
-section3.Size = UDim2.new(1, -16, 0, 18)
-section3.Position = UDim2.new(0, 8, 0, y)
-section3.BackgroundTransparency = 1
-section3.Text = "BALL HITBOX ESP"
-section3.TextColor3 = Color3.fromRGB(140, 200, 255)
-section3.TextSize = 10
-section3.Font = Enum.Font.GothamBold
-section3.TextXAlignment = Enum.TextXAlignment.Left
-section3.ZIndex = 105
-section3.Parent = MainFrame
+local s3 = Instance.new("TextLabel")
+s3.Size = UDim2.new(1, -16, 0, 18)
+s3.Position = UDim2.new(0, 8, 0, y)
+s3.BackgroundTransparency = 1
+s3.Text = "BALL HITBOX ESP (CEMBER)"
+s3.TextColor3 = Color3.fromRGB(140, 200, 255)
+s3.TextSize = 10
+s3.Font = Enum.Font.GothamBold
+s3.TextXAlignment = Enum.TextXAlignment.Left
+s3.ZIndex = 105
+s3.Parent = MainFrame
 y = y + 22
 
-local ballHitboxEspBtn = createButton("Ball Hitbox ESP", function()
+local ballHitboxEspBtn, ballHitboxEspTxt = createButton("Ball Hitbox ESP", function()
     Settings.BallHitboxESP = not Settings.BallHitboxESP
-    if Settings.BallHitboxESP then
-        ballHitboxEspBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        ballHitboxEspBtn:SetAttribute("Active", true)
-        ballHitboxEspBtn.Text = "Ball Hitbox ESP  [ON]"
-    else
-        ballHitboxEspBtn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        ballHitboxEspBtn:SetAttribute("Active", false)
-        ballHitboxEspBtn.Text = "Ball Hitbox ESP"
-    end
+    ballHitboxEspBtn:SetActive(Settings.BallHitboxESP)
+    ballHitboxEspTxt.Text = Settings.BallHitboxESP and "Ball Hitbox ESP  [ON]" or "Ball Hitbox ESP"
 end, y); y = y + 44
 
--- === HITBOX ESP ===
-local section4 = Instance.new("TextLabel")
-section4.Size = UDim2.new(1, -16, 0, 18)
-section4.Position = UDim2.new(0, 8, 0, y)
-section4.BackgroundTransparency = 1
-section4.Text = "PLAYER HITBOX ESP"
-section4.TextColor3 = Color3.fromRGB(140, 200, 255)
-section4.TextSize = 10
-section4.Font = Enum.Font.GothamBold
-section4.TextXAlignment = Enum.TextXAlignment.Left
-section4.ZIndex = 105
-section4.Parent = MainFrame
+-- === PLAYER HITBOX ===
+local s4 = Instance.new("TextLabel")
+s4.Size = UDim2.new(1, -16, 0, 18)
+s4.Position = UDim2.new(0, 8, 0, y)
+s4.BackgroundTransparency = 1
+s4.Text = "PLAYER HITBOX ESP"
+s4.TextColor3 = Color3.fromRGB(140, 200, 255)
+s4.TextSize = 10
+s4.Font = Enum.Font.GothamBold
+s4.TextXAlignment = Enum.TextXAlignment.Left
+s4.ZIndex = 105
+s4.Parent = MainFrame
 y = y + 22
 
-local hitboxEspBtn = createButton("Hitbox ESP (Karakter)", function()
+local hitboxEspBtn, hitboxEspTxt = createButton("Hitbox ESP (Karakter)", function()
     Settings.HitboxESP = not Settings.HitboxESP
-    if Settings.HitboxESP then
-        hitboxEspBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        hitboxEspBtn:SetAttribute("Active", true)
-        hitboxEspBtn.Text = "Hitbox ESP (Karakter)  [ON]"
-    else
-        hitboxEspBtn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        hitboxEspBtn:SetAttribute("Active", false)
-        hitboxEspBtn.Text = "Hitbox ESP (Karakter)"
-    end
+    hitboxEspBtn:SetActive(Settings.HitboxESP)
+    hitboxEspTxt.Text = Settings.HitboxESP and "Hitbox ESP (Karakter)  [ON]" or "Hitbox ESP (Karakter)"
 end, y); y = y + 44
 
 -- === DİĞER ===
-local section5 = Instance.new("TextLabel")
-section5.Size = UDim2.new(1, -16, 0, 18)
-section5.Position = UDim2.new(0, 8, 0, y)
-section5.BackgroundTransparency = 1
-section5.Text = "DIGER"
-section5.TextColor3 = Color3.fromRGB(140, 200, 255)
-section5.TextSize = 10
-section5.Font = Enum.Font.GothamBold
-section5.TextXAlignment = Enum.TextXAlignment.Left
-section5.ZIndex = 105
-section5.Parent = MainFrame
+local s5 = Instance.new("TextLabel")
+s5.Size = UDim2.new(1, -16, 0, 18)
+s5.Position = UDim2.new(0, 8, 0, y)
+s5.BackgroundTransparency = 1
+s5.Text = "DIGER"
+s5.TextColor3 = Color3.fromRGB(140, 200, 255)
+s5.TextSize = 10
+s5.Font = Enum.Font.GothamBold
+s5.TextXAlignment = Enum.TextXAlignment.Left
+s5.ZIndex = 105
+s5.Parent = MainFrame
 y = y + 22
 
-local fullbrightBtn = createButton("Fullbright", function()
+local fullbrightBtn, fullbrightTxt = createButton("Fullbright", function()
     Settings.Fullbright = not Settings.Fullbright
-    if Settings.Fullbright then
-        fullbrightBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        fullbrightBtn:SetAttribute("Active", true)
-        fullbrightBtn.Text = "Fullbright  [ON]"
-    else
-        fullbrightBtn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        fullbrightBtn:SetAttribute("Active", false)
-        fullbrightBtn.Text = "Fullbright"
-    end
+    fullbrightBtn:SetActive(Settings.Fullbright)
+    fullbrightTxt.Text = Settings.Fullbright and "Fullbright  [ON]" or "Fullbright"
 end, y); y = y + 44
 
-local goalAimBtn = createButton("Goal Aimbot", function()
+local goalAimBtn, goalAimTxt = createButton("Goal Aimbot", function()
     Settings.GoalAimbot = not Settings.GoalAimbot
-    if Settings.GoalAimbot then
-        goalAimBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        goalAimBtn:SetAttribute("Active", true)
-        goalAimBtn.Text = "Goal Aimbot  [ON]"
-    else
-        goalAimBtn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        goalAimBtn:SetAttribute("Active", false)
-        goalAimBtn.Text = "Goal Aimbot"
-    end
+    goalAimBtn:SetActive(Settings.GoalAimbot)
+    goalAimTxt.Text = Settings.GoalAimbot and "Goal Aimbot  [ON]" or "Goal Aimbot"
 end, y); y = y + 44
 
-local autoDiveBtn = createButton("Auto Dive", function()
+local autoDiveBtn, autoDiveTxt = createButton("Auto Dive", function()
     Settings.AutoDive = not Settings.AutoDive
-    if Settings.AutoDive then
-        autoDiveBtn.BackgroundColor3 = Color3.fromRGB(40, 110, 80)
-        autoDiveBtn:SetAttribute("Active", true)
-        autoDiveBtn.Text = "Auto Dive  [ON]"
-    else
-        autoDiveBtn.BackgroundColor3 = Color3.fromRGB(28, 45, 75)
-        autoDiveBtn:SetAttribute("Active", false)
-        autoDiveBtn.Text = "Auto Dive"
-    end
+    autoDiveBtn:SetActive(Settings.AutoDive)
+    autoDiveTxt.Text = Settings.AutoDive and "Auto Dive  [ON]" or "Auto Dive"
 end, y); y = y + 44
 
--- MainFrame yüksekliğini butonlara göre ayarla
 MainFrame.Size = UDim2.new(0, 340, 0, y + 20)
 
 -- =============================================
@@ -556,13 +528,13 @@ UserInputService.InputEnded:Connect(function(input)
 end)
 
 -- =============================================
--- DEBUG GÜNCELLEME
+-- DEBUG
 -- =============================================
 task.spawn(function()
     while MainFrame.Parent do
         local ball = findBall()
         if ball then
-            debugLabel.Text = "TOP: " .. ball:GetFullName()
+            debugLabel.Text = "TOP: " .. ball:GetFullName() .. " | CanCollide: " .. tostring(ball.CanCollide)
             debugLabel.TextColor3 = Color3.fromRGB(80, 255, 130)
         else
             debugLabel.Text = "TOP BULUNAMADI!"
@@ -573,32 +545,17 @@ task.spawn(function()
 end)
 
 -- =============================================
--- ESP GÖRSEL (GÜZELLEŞTİRİLMİŞ)
+-- ESP: ÇEMBER + CANCOLLIDE OFF
 -- =============================================
 local ballHighlight = nil
 local ballBillboard = nil
-local ballHitboxBox = nil
-local charHitboxData = {} -- {hrp = {box = box}}
-
-local function createCharHitbox(hrp)
-    -- BoxHandleAdornment + Billboard (isim)
-    local box = Instance.new("BoxHandleAdornment")
-    box.Name = "SOUHUB_CharBox"
-    box.Adornee = hrp
-    box.Size = hrp.Size + Vector3.new(0.1, 0.1, 0.1)
-    box.Color3 = Settings.HitboxESPColor
-    box.Transparency = 0.55
-    box.AlwaysOnTop = true
-    box.ZIndex = 5
-    box.Parent = hrp
-    
-    return {box = box}
-end
+local ballSphere = nil       -- ÇEMBER (SphereHandleAdornment)
+local charHitboxData = {}
 
 local function updateESP()
     local ball = findBall()
     
-    -- === BALL ESP (Highlight + Billboard) ===
+    -- === BALL ESP ===
     if Settings.BallESP and ball then
         if not ballHighlight or ballHighlight.Parent ~= ball then
             if ballHighlight then ballHighlight:Destroy() end
@@ -614,7 +571,6 @@ local function updateESP()
         ballHighlight.FillColor = Settings.BallESPColor
         ballHighlight.OutlineColor = Settings.BallESPColor
         
-        -- Billboard
         if not ballBillboard or ballBillboard.Parent ~= ball then
             if ballBillboard then ballBillboard:Destroy() end
             ballBillboard = Instance.new("BillboardGui")
@@ -667,55 +623,63 @@ local function updateESP()
         if ballBillboard then ballBillboard:Destroy() ballBillboard = nil end
     end
     
-    -- === BALL HITBOX ESP (GÜZEL KUTU) ===
+    -- === BALL HITBOX ESP (ÇEMBER - SphereHandleAdornment) ===
     if Settings.BallHitboxESP and ball then
-        if not ballHitboxBox or ballHitboxBox.Parent ~= ball then
-            if ballHitboxBox then ballHitboxBox:Destroy() end
-            ballHitboxBox = Instance.new("BoxHandleAdornment")
-            ballHitboxBox.Name = "SOUHUB_BallHitboxESP"
-            ballHitboxBox.Adornee = ball
-            ballHitboxBox.Size = ball.Size + Vector3.new(0.3, 0.3, 0.3)
-            ballHitboxBox.Color3 = Settings.BallHitboxESPColor
-            ballHitboxBox.Transparency = 0.35
-            ballHitboxBox.AlwaysOnTop = true
-            ballHitboxBox.ZIndex = 5
-            ballHitboxBox.Parent = ball
+        if not ballSphere or ballSphere.Parent ~= ball then
+            if ballSphere then ballSphere:Destroy() end
+            ballSphere = Instance.new("SphereHandleAdornment")
+            ballSphere.Name = "SOUHUB_BallSphere"
+            ballSphere.Adornee = ball
+            ballSphere.Radius = (ball.Size.X / 2) + 0.3
+            ballSphere.Color3 = Settings.BallHitboxESPColor
+            ballSphere.Transparency = 0.4
+            ballSphere.AlwaysOnTop = true
+            ballSphere.ZIndex = 5
+            ballSphere.Parent = ball
         else
-            ballHitboxBox.Size = ball.Size + Vector3.new(0.3, 0.3, 0.3)
-            ballHitboxBox.Color3 = Settings.BallHitboxESPColor
+            ballSphere.Radius = (ball.Size.X / 2) + 0.3
+            ballSphere.Color3 = Settings.BallHitboxESPColor
         end
     else
-        if ballHitboxBox then ballHitboxBox:Destroy() ballHitboxBox = nil end
+        if ballSphere then ballSphere:Destroy() ballSphere = nil end
     end
     
-    -- === PLAYER HITBOX ESP ===
+    -- === PLAYER HITBOX ESP (ÇEMBER) ===
     if Settings.HitboxESP then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
                 local hrp = plr.Character:FindFirstChild("HumanoidRootPart")
                 if hrp then
-                    if not charHitboxData[hrp] or not charHitboxData[hrp].box.Parent then
-                        charHitboxData[hrp] = createCharHitbox(hrp)
+                    if not charHitboxData[hrp] or not charHitboxData[hrp].sphere.Parent then
+                        local sphere = Instance.new("SphereHandleAdornment")
+                        sphere.Adornee = hrp
+                        sphere.Radius = math.max(hrp.Size.X, hrp.Size.Y, hrp.Size.Z) / 2 + 0.5
+                        sphere.Color3 = Settings.HitboxESPColor
+                        sphere.Transparency = 0.6
+                        sphere.AlwaysOnTop = true
+                        sphere.ZIndex = 5
+                        sphere.Parent = hrp
+                        charHitboxData[hrp] = {sphere = sphere}
                     else
-                        charHitboxData[hrp].box.Color3 = Settings.HitboxESPColor
-                        charHitboxData[hrp].box.Size = hrp.Size + Vector3.new(0.1, 0.1, 0.1)
+                        charHitboxData[hrp].sphere.Color3 = Settings.HitboxESPColor
                     end
                 end
             end
         end
     else
         for hrp, data in pairs(charHitboxData) do
-            if data.box and data.box.Parent then data.box:Destroy() end
+            if data.sphere and data.sphere.Parent then data.sphere:Destroy() end
         end
         charHitboxData = {}
     end
 end
 
 -- =============================================
--- BALL HITBOX BÜYÜTME
+-- BALL HITBOX BÜYÜTME + CANCOLLIDE OFF
 -- =============================================
 local originalBallSize = nil
 local originalBallPart = nil
+local originalCanCollide = nil
 
 -- =============================================
 -- ANA DÖNGÜ
@@ -726,18 +690,27 @@ RunService.RenderStepped:Connect(function()
     local ball = findBall()
     
     if ball then
+        -- Ball Hitbox (büyütme)
         if Settings.BallHitbox then
             if originalBallPart ~= ball then
                 originalBallPart = ball
                 originalBallSize = ball.Size
+                originalCanCollide = ball.CanCollide
             end
             local s = Settings.BallSize
             ball.Size = Vector3.new(s, s, s)
+            ball.CanCollide = false  -- HITBOX İÇİNE GİRİLEBİLİR
+            ball.Massless = true     -- Ağırlıksız (karakteri itmez)
         else
             if originalBallPart and originalBallSize then
-                pcall(function() originalBallPart.Size = originalBallSize end)
+                pcall(function()
+                    originalBallPart.Size = originalBallSize
+                    originalBallPart.CanCollide = originalCanCollide or true
+                    originalBallPart.Massless = false
+                end)
                 originalBallPart = nil
                 originalBallSize = nil
+                originalCanCollide = nil
             end
         end
     end
@@ -787,4 +760,4 @@ UserInputService.InputBegan:Connect(function(input, gp)
     end
 end)
 
-print("[SOU HUB v9] Yuklendi!")
+print("[SOU HUB v10] Yuklendi!")
