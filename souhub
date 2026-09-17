@@ -1,10 +1,11 @@
 --[[
-    SOU HUB - TOUCHLINE EDITION (FIXED)
+    SOU HUB - TOUCHLINE EDITION v2
     Reach + Ball Hitbox + Goal Aimbot + Auto Dive
+    Ball ESP + Hitbox ESP + Keybind Sistemi
     ESC Fix + Hizli Leave Fix
 ]]
 
-print("[SOU HUB] Touchline Edition yukleniyor...")
+print("[SOU HUB] Touchline Edition v2 yukleniyor...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -18,9 +19,6 @@ local Camera = workspace.CurrentCamera
 local LocalPlayer = Players.LocalPlayer
 local Mouse = LocalPlayer:GetMouse()
 
--- =============================================
--- GUI PARENT
--- =============================================
 local function getGuiParent()
     if gethui then return gethui() end
     if syn and syn.protect_gui then
@@ -37,7 +35,7 @@ local function getGuiParent()
 end
 
 -- =============================================
--- THEME (Winter)
+-- THEME
 -- =============================================
 local Theme = {
     Bg = Color3.fromRGB(10, 18, 32),
@@ -63,15 +61,37 @@ local OriginalLighting = {
 -- SETTINGS
 -- =============================================
 local Settings = {
+    -- Ball Control
     Reach = false, ReachValue = 30,
     BallHitbox = false, BallSize = 2.0,
     GoalAimbot = false, GoalAimStrength = 0.5,
     AutoDive = false,
-    Prediction = false, PredictionValue = 0.3,
+    Prediction = false,
     Fullbright = false,
+    
+    -- Ball ESP
+    BallESP = false,
+    BallESPBox = true,
+    BallESPName = true,
+    BallESPDistance = true,
+    BallESPTracer = false,
+    BallESPColor = Color3.fromRGB(255, 220, 60),
+    
+    -- Hitbox ESP (görsel)
+    HitboxESP = false,
+    HitboxESPTransparency = 0.7,
+    HitboxESPColor = Color3.fromRGB(120, 220, 160),
+    
     Watermark = true,
     GuiTransparency = 250,
 }
+
+-- =============================================
+-- KEYBIND SYSTEM
+-- =============================================
+local activeKeybindBtn = nil
+local keybindCallbacks = {}
+_G.SOUHUB_KeybindAssigners = _G.SOUHUB_KeybindAssigners or {}
 
 -- =============================================
 -- CLEANUP
@@ -231,8 +251,8 @@ local InitialTransparency = 1 - (Settings.GuiTransparency / 500)
 
 local MainFrame = Instance.new("Frame")
 MainFrame.Name = "MainFrame"
-MainFrame.Size = UDim2.new(0, 600, 0, 460)
-MainFrame.Position = UDim2.new(0.5, -300, 0.5, -230)
+MainFrame.Size = UDim2.new(0, 620, 0, 480)
+MainFrame.Position = UDim2.new(0.5, -310, 0.5, -240)
 MainFrame.BackgroundColor3 = Theme.Bg
 MainFrame.BackgroundTransparency = InitialTransparency
 MainFrame.BorderSizePixel = 0
@@ -275,7 +295,7 @@ tl.TextXAlignment = Enum.TextXAlignment.Left; tl.ZIndex = 5; tl.Parent = MainFra
 
 local cl = Instance.new("TextLabel")
 cl.Size = UDim2.new(1, 0, 0, 14); cl.Position = UDim2.new(0, 24, 0, 34)
-cl.BackgroundTransparency = 1; cl.Text = "TOUCHLINE EDITION"; cl.TextColor3 = Theme.SubText
+cl.BackgroundTransparency = 1; cl.Text = "TOUCHLINE EDITION v2"; cl.TextColor3 = Theme.SubText
 cl.TextSize = 9; cl.Font = Enum.Font.GothamSemibold
 cl.TextXAlignment = Enum.TextXAlignment.Left; cl.ZIndex = 5; cl.Parent = MainFrame
 
@@ -302,7 +322,7 @@ end)
 -- =============================================
 -- UI BUILDERS
 -- =============================================
-local function addToggle(parent, name, default, callback, order)
+local function addToggle(parent, name, default, callback, order, withKeybind)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, -16, 0, 36)
     row.BackgroundTransparency = 1
@@ -310,8 +330,10 @@ local function addToggle(parent, name, default, callback, order)
     row.ZIndex = 3
     row.Parent = parent
     
+    local toggleWidth = withKeybind and UDim2.new(1, -76, 1, 0) or UDim2.new(1, 0, 1, 0)
+    
     local btn = Instance.new("TextButton")
-    btn.Size = UDim2.new(1, 0, 1, 0)
+    btn.Size = toggleWidth
     btn.BackgroundColor3 = Theme.Button
     btn.BackgroundTransparency = 0.3
     btn.BorderSizePixel = 0
@@ -354,6 +376,64 @@ local function addToggle(parent, name, default, callback, order)
         if callback then callback(state) end
     end
     btn.MouseButton1Click:Connect(doToggle)
+    
+    -- Keybind butonu
+    if withKeybind then
+        local kbBtn = Instance.new("TextButton")
+        kbBtn.Size = UDim2.new(0, 68, 1, 0)
+        kbBtn.Position = UDim2.new(1, -68, 0, 0)
+        kbBtn.BackgroundColor3 = Theme.Button
+        kbBtn.BackgroundTransparency = 0.5
+        kbBtn.BorderSizePixel = 0
+        kbBtn.Text = "[ - ]"
+        kbBtn.TextColor3 = Theme.SubText
+        kbBtn.TextSize = 10
+        kbBtn.Font = Enum.Font.GothamBold
+        kbBtn.AutoButtonColor = false
+        kbBtn.ZIndex = 4
+        kbBtn.Parent = row
+        Instance.new("UICorner", kbBtn).CornerRadius = UDim.new(0, 4)
+        local kbStroke = Instance.new("UIStroke", kbBtn)
+        kbStroke.Color = Theme.Border
+        kbStroke.Thickness = 1
+        
+        local assignedKey = nil
+        
+        kbBtn.MouseButton1Click:Connect(function()
+            if assignedKey then
+                keybindCallbacks[assignedKey] = nil
+                assignedKey = nil
+            end
+            
+            if activeKeybindBtn == kbBtn then
+                activeKeybindBtn = nil
+                kbBtn.Text = "[ - ]"
+                kbBtn.TextColor3 = Theme.SubText
+                tween(kbBtn, 0.2, {BackgroundTransparency = 0.5})
+                return
+            end
+            
+            if activeKeybindBtn then
+                activeKeybindBtn.Text = "[ - ]"
+                activeKeybindBtn.TextColor3 = Theme.SubText
+                tween(activeKeybindBtn, 0.2, {BackgroundTransparency = 0.5})
+            end
+            
+            activeKeybindBtn = kbBtn
+            kbBtn.Text = "[...]"
+            kbBtn.TextColor3 = Color3.fromRGB(255, 200, 60)
+            tween(kbBtn, 0.2, {BackgroundTransparency = 0.2})
+        end)
+        
+        _G.SOUHUB_KeybindAssigners[kbBtn] = function(keyCode)
+            assignedKey = keyCode
+            kbBtn.Text = "[" .. keyCode.Name .. "]"
+            kbBtn.TextColor3 = Color3.fromRGB(120, 220, 160)
+            tween(kbBtn, 0.15, {BackgroundTransparency = 0.3})
+            keybindCallbacks[keyCode] = doToggle
+            activeKeybindBtn = nil
+        end
+    end
     
     return function() return state end
 end
@@ -455,6 +535,54 @@ local function addLabel(page, text, order)
     lbl.Parent = page
 end
 
+local function addCycleButton(page, name, options, default, callback, order)
+    local idx = 1
+    for i,v in ipairs(options) do if v == default then idx = i; break end end
+    local btn = Instance.new("TextButton")
+    btn.Size = UDim2.new(1,-16,0,32)
+    btn.BackgroundColor3 = Theme.Button
+    btn.BackgroundTransparency = 0.3
+    btn.BorderSizePixel = 0
+    btn.Text = ""
+    btn.AutoButtonColor = false
+    btn.LayoutOrder = order or 0
+    btn.ZIndex = 3
+    btn.Parent = page
+    Instance.new("UICorner", btn).CornerRadius = UDim.new(0,5)
+    local s = Instance.new("UIStroke", btn); s.Color = Theme.Border; s.Thickness = 1
+    
+    local nameLbl = Instance.new("TextLabel")
+    nameLbl.Size = UDim2.new(0.5, 0, 1, 0)
+    nameLbl.Position = UDim2.new(0, 14, 0, 0)
+    nameLbl.BackgroundTransparency = 1
+    nameLbl.Text = name
+    nameLbl.TextColor3 = Theme.Text
+    nameLbl.TextSize = 11
+    nameLbl.Font = Enum.Font.GothamSemibold
+    nameLbl.TextXAlignment = Enum.TextXAlignment.Left
+    nameLbl.ZIndex = 4
+    nameLbl.Parent = btn
+    
+    local valueLbl = Instance.new("TextLabel")
+    valueLbl.Size = UDim2.new(0.5, -14, 1, 0)
+    valueLbl.Position = UDim2.new(0.5, 0, 0, 0)
+    valueLbl.BackgroundTransparency = 1
+    valueLbl.Text = options[idx]
+    valueLbl.TextColor3 = Theme.Accent
+    valueLbl.TextSize = 11
+    valueLbl.Font = Enum.Font.GothamBold
+    valueLbl.TextXAlignment = Enum.TextXAlignment.Right
+    valueLbl.ZIndex = 4
+    valueLbl.Parent = btn
+    
+    btn.MouseButton1Click:Connect(function()
+        idx = idx % #options + 1
+        valueLbl.Text = options[idx]
+        if callback then callback(options[idx]) end
+    end)
+    return function() return options[idx] end
+end
+
 -- =============================================
 -- CONTENT AREA
 -- =============================================
@@ -486,341 +614,43 @@ pad.PaddingRight = UDim.new(0, 4)
 pad.PaddingTop = UDim.new(0, 4)
 
 addLabel(mainPage, "⚽ BALL CONTROL", 1)
-local getReach = addToggle(mainPage, "Reach", false, function(v) Settings.Reach = v end, 2)
+local getReach = addToggle(mainPage, "Reach", false, function(v) Settings.Reach = v end, 2, true)
 local getReachValue = addSlider(mainPage, "Reach Distance", 5, 100, 30, function(v) Settings.ReachValue = v end, 3)
 
 addLabel(mainPage, "⚽ BALL HITBOX", 4)
-local getBallHitbox = addToggle(mainPage, "Ball Hitbox", false, function(v) Settings.BallHitbox = v end, 5)
+local getBallHitbox = addToggle(mainPage, "Ball Hitbox", false, function(v) Settings.BallHitbox = v end, 5, true)
 local getBallSize = addSlider(mainPage, "Ball Size", 1.0, 5.0, 2.0, function(v) Settings.BallSize = v end, 6)
 
-addLabel(mainPage, "🥅 GOAL AIMBOT", 7)
-local getGoalAimbot = addToggle(mainPage, "Goal Aimbot", false, function(v) Settings.GoalAimbot = v end, 8)
-local getGoalStrength = addSlider(mainPage, "Aim Strength", 0.1, 1.0, 0.5, function(v) Settings.GoalAimStrength = v end, 9)
+addLabel(mainPage, "🎯 BALL ESP", 7)
+local getBallESP = addToggle(mainPage, "Ball ESP", false, function(v) Settings.BallESP = v end, 8, true)
+local getBallESPBox = addToggle(mainPage, "  Box", true, function(v) Settings.BallESPBox = v end, 9, false)
+local getBallESPName = addToggle(mainPage, "  Name", true, function(v) Settings.BallESPName = v end, 10, false)
+local getBallESPDistance = addToggle(mainPage, "  Distance", true, function(v) Settings.BallESPDistance = v end, 11, false)
+local getBallESPTracer = addToggle(mainPage, "  Tracer", false, function(v) Settings.BallESPTracer = v end, 12, false)
+local getBallESPColor = addCycleButton(mainPage, "ESP Color", {"Yellow","Red","Cyan","Green","Purple","White"}, "Yellow", function(v)
+    local colors = {Yellow=Color3.fromRGB(255,220,60), Red=Color3.fromRGB(255,80,80), Cyan=Color3.fromRGB(100,220,255), Green=Color3.fromRGB(100,255,140), Purple=Color3.fromRGB(200,120,255), White=Color3.fromRGB(255,255,255)}
+    Settings.BallESPColor = colors[v] or Color3.fromRGB(255,220,60)
+end, 13)
 
-addLabel(mainPage, "🧤 GOALKEEPER", 10)
-local getAutoDive = addToggle(mainPage, "Auto Dive", false, function(v) Settings.AutoDive = v end, 11)
+addLabel(mainPage, "📦 HITBOX ESP", 14)
+local getHitboxESP = addToggle(mainPage, "Hitbox ESP", false, function(v) Settings.HitboxESP = v end, 15, true)
+local getHitboxTransparency = addSlider(mainPage, "Hitbox Transparency", 0.1, 0.9, 0.7, function(v) Settings.HitboxESPTransparency = v end, 16)
 
-addLabel(mainPage, "🌍 WORLD", 12)
-local getFullbright = addToggle(mainPage, "Fullbright", false, function(v) Settings.Fullbright = v end, 13)
+addLabel(mainPage, "🥅 GOAL AIMBOT", 17)
+local getGoalAimbot = addToggle(mainPage, "Goal Aimbot", false, function(v) Settings.GoalAimbot = v end, 18, true)
+local getGoalStrength = addSlider(mainPage, "Aim Strength", 0.1, 1.0, 0.5, function(v) Settings.GoalAimStrength = v end, 19)
+
+addLabel(mainPage, "🧤 GOALKEEPER", 20)
+local getAutoDive = addToggle(mainPage, "Auto Dive", false, function(v) Settings.AutoDive = v end, 21, true)
+
+addLabel(mainPage, "🌍 WORLD", 22)
+local getFullbright = addToggle(mainPage, "Fullbright", false, function(v) Settings.Fullbright = v end, 23, true)
 
 -- =============================================
 -- TOP/KALE BULMA
 -- =============================================
 local function getBall()
-    -- Önce workspace içinde "Ball" ara
     local ball = workspace:FindFirstChild("Ball")
     if ball and ball:IsA("BasePart") then return ball end
-    
-    -- Sonra "ball" ara
     ball = workspace:FindFirstChild("ball")
-    if ball and ball:IsA("BasePart") then return ball end
-    
-    -- Sonra "Top" ara
-    ball = workspace:FindFirstChild("Top")
-    if ball and ball:IsA("BasePart") then return ball end
-    
-    -- En son: ismi ball/top içeren herhangi bir BasePart
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local nameLower = obj.Name:lower()
-            if nameLower == "ball" or nameLower == "top" or nameLower:find("^ball") or nameLower:find("^top") then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
-local function getGoal()
-    -- workspace içinde "Goal" ara
-    local goal = workspace:FindFirstChild("Goal")
-    if goal and goal:IsA("BasePart") then return goal end
-    
-    -- "Kale" ara
-    goal = workspace:FindFirstChild("Kale")
-    if goal and goal:IsA("BasePart") then return goal end
-    
-    -- İsmi goal/kale içeren BasePart
-    for _, obj in ipairs(workspace:GetDescendants()) do
-        if obj:IsA("BasePart") then
-            local nameLower = obj.Name:lower()
-            if nameLower:find("goal") or nameLower:find("kale") then
-                return obj
-            end
-        end
-    end
-    return nil
-end
-
--- =============================================
--- BALL HITBOX
--- =============================================
-local originalBallSize = nil
-
-local function applyBallHitbox()
-    local ball = getBall()
-    if not ball then return end
-    
-    if not originalBallSize then
-        originalBallSize = ball.Size
-    end
-    
-    if Settings.BallHitbox then
-        pcall(function()
-            ball.Size = originalBallSize * Settings.BallSize
-            ball.Material = Enum.Material.Neon
-            ball.Transparency = 0.2
-        end)
-    else
-        if originalBallSize then
-            pcall(function()
-                ball.Size = originalBallSize
-                ball.Material = Enum.Material.Plastic
-                ball.Transparency = 0
-            end)
-        end
-    end
-end
-
--- =============================================
--- REACH
--- =============================================
-local function applyReach()
-    if not Settings.Reach then return end
-    local char = LocalPlayer.Character
-    if not char then return end
-    local ball = getBall()
-    if not ball then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local dist = (ball.Position - hrp.Position).Magnitude
-    if dist <= Settings.ReachValue and dist > 5 then
-        pcall(function()
-            local dir = (hrp.Position - ball.Position).Unit
-            ball.AssemblyLinearVelocity = dir * 30
-        end)
-    end
-end
-
--- =============================================
--- GOAL AIMBOT
--- =============================================
-local function applyGoalAimbot()
-    if not Settings.GoalAimbot then return end
-    local ball = getBall()
-    if not ball then return end
-    local goal = getGoal()
-    if not goal then return end
-    
-    local currentVel = ball.AssemblyLinearVelocity
-    if currentVel.Magnitude > 5 then
-        local dir = (goal.Position - ball.Position).Unit
-        local targetVel = dir * currentVel.Magnitude
-        pcall(function()
-            ball.AssemblyLinearVelocity = currentVel:Lerp(targetVel, Settings.GoalAimStrength)
-        end)
-    end
-end
-
--- =============================================
--- AUTO DIVE
--- =============================================
-local function applyAutoDive()
-    if not Settings.AutoDive then return end
-    local char = LocalPlayer.Character
-    if not char then return end
-    local hum = char:FindFirstChildOfClass("Humanoid")
-    if not hum then return end
-    local ball = getBall()
-    if not ball then return end
-    local hrp = char:FindFirstChild("HumanoidRootPart")
-    if not hrp then return end
-    
-    local dist = (ball.Position - hrp.Position).Magnitude
-    local ballVel = ball.AssemblyLinearVelocity.Magnitude
-    
-    if dist < 20 and ballVel > 10 then
-        pcall(function()
-            if hum.FloorMaterial ~= Enum.Material.Air then
-                hum:ChangeState(Enum.HumanoidStateType.Jumping)
-            end
-        end)
-    end
-end
-
--- =============================================
--- MAIN LOOP
--- =============================================
-RunService.Heartbeat:Connect(function()
-    pcall(applyReach)
-    pcall(applyBallHitbox)
-    pcall(applyGoalAimbot)
-    pcall(applyAutoDive)
-end)
-
--- =============================================
--- FULLBRIGHT
--- =============================================
-RunService.Heartbeat:Connect(function()
-    if Settings.Fullbright then
-        Lighting.Ambient = Color3.fromRGB(255, 255, 255)
-        Lighting.OutdoorAmbient = Color3.fromRGB(255, 255, 255)
-        Lighting.Brightness = 2
-    else
-        Lighting.Ambient = OriginalLighting.Ambient
-        Lighting.OutdoorAmbient = OriginalLighting.OutdoorAmbient
-        Lighting.Brightness = OriginalLighting.Brightness
-    end
-end)
-
--- =============================================
--- ESC MENU FIX (KRITIK!)
--- =============================================
-local savedHighlightData = {}
-
--- ESC'ye basıldığında Roblox menüsü açılır
-GuiService.MenuOpened:Connect(function()
-    -- GUI'yi gizle
-    if MainFrame then MainFrame.Visible = false end
-    if Watermark then Watermark.Visible = false end
-    
-    -- Tüm aktif highlight'ları kaldır
-    if highlightObjects then
-        savedHighlightData = {}
-        for name, hl in pairs(highlightObjects) do
-            pcall(function()
-                savedHighlightData[name] = hl.Parent
-                hl.Parent = nil
-            end)
-        end
-    end
-    
-    -- Kilitleri bırak
-    locked = false
-    Settings.CurrentTarget = nil
-end)
-
--- ESC menüsü kapandığında
-GuiService.MenuClosed:Connect(function()
-    -- GUI'yi geri getir
-    if MainFrame then MainFrame.Visible = true end
-    if Watermark then Watermark.Visible = true end
-    
-    -- Highlight'ları geri ekle
-    for name, parent in pairs(savedHighlightData) do
-        if highlightObjects and highlightObjects[name] and parent then
-            pcall(function() highlightObjects[name].Parent = parent end)
-        end
-    end
-    savedHighlightData = {}
-    
-    -- Mouse'u serbest bırak (hızlı leave için)
-    task.wait(0.1)
-    pcall(function()
-        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        UserInputService.MouseIconEnabled = true
-    end)
-    task.wait(0.15)
-    pcall(function()
-        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        UserInputService.MouseIconEnabled = true
-    end)
-end)
-
--- Pencere odak değişimleri
-UserInputService.WindowFocused:Connect(function()
-    task.wait(0.2)
-    pcall(function()
-        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        UserInputService.MouseIconEnabled = true
-    end)
-end)
-
-UserInputService.WindowFocusReleased:Connect(function()
-    pcall(function()
-        UserInputService.MouseBehavior = Enum.MouseBehavior.Default
-        UserInputService.MouseIconEnabled = true
-    end)
-end)
-
--- =============================================
--- INPUT
--- =============================================
-UserInputService.InputBegan:Connect(function(input, gpe)
-    if gpe then return end
-    if input.KeyCode == Enum.KeyCode.RightShift then
-        if MainFrame then MainFrame.Visible = not MainFrame.Visible end
-    end
-end)
-
--- =============================================
--- WATERMARK
--- =============================================
-local Watermark = Instance.new("Frame")
-Watermark.Size = UDim2.new(0, 220, 0, 38)
-Watermark.Position = UDim2.new(0, 15, 0, 15)
-Watermark.BackgroundColor3 = Theme.Panel
-Watermark.BackgroundTransparency = 0.1
-Watermark.BorderSizePixel = 0
-Watermark.Visible = true
-Watermark.ZIndex = 500
-Watermark.Parent = ScreenGui
-Instance.new("UICorner", Watermark).CornerRadius = UDim.new(0, 6)
-local wmStroke = Instance.new("UIStroke", Watermark)
-wmStroke.Color = Theme.Border
-wmStroke.Thickness = 1
-makeDraggable(Watermark, Watermark)
-
-local wmTitle = Instance.new("TextLabel")
-wmTitle.Size = UDim2.new(1, 0, 0, 18)
-wmTitle.Position = UDim2.new(0, 12, 0, 8)
-wmTitle.BackgroundTransparency = 1
-wmTitle.Text = "❄ SOU HUB • TOUCHLINE"
-wmTitle.TextColor3 = Theme.Text
-wmTitle.TextSize = 10
-wmTitle.Font = Enum.Font.GothamBold
-wmTitle.TextXAlignment = Enum.TextXAlignment.Left
-wmTitle.ZIndex = 501
-wmTitle.Parent = Watermark
-
-local wmInfo = Instance.new("TextLabel")
-wmInfo.Size = UDim2.new(1, 0, 0, 12)
-wmInfo.Position = UDim2.new(0, 12, 0, 24)
-wmInfo.BackgroundTransparency = 1
-wmInfo.Text = "60 FPS  |  0 MS"
-wmInfo.TextColor3 = Theme.SubText
-wmInfo.TextSize = 9
-wmInfo.Font = Enum.Font.Code
-wmInfo.TextXAlignment = Enum.TextXAlignment.Left
-wmInfo.ZIndex = 501
-wmInfo.Parent = Watermark
-
-local fpsCount, fpsTime = 0, tick()
-RunService.RenderStepped:Connect(function()
-    fpsCount = fpsCount + 1
-    if tick() - fpsTime >= 1 then
-        local fps = fpsCount
-        local ping = 0
-        pcall(function() ping = math.floor(Stats.Network.ServerStatsItem["Data Ping"]:GetValue()) end)
-        wmInfo.Text = fps .. " FPS  |  " .. ping .. " MS"
-        fpsCount = 0
-        fpsTime = tick()
-    end
-end)
-
--- =============================================
--- BILDIRIM
--- =============================================
-print("[SOU HUB] Touchline Edition yuklendi!")
-showToast("SOU HUB", "Touchline Edition hazir!", "success")
-task.wait(0.5)
-showToast("Touchline", "Reach + Ball Hitbox aktif", "info")
-
-pcall(function()
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "SOU HUB",
-        Text = "Touchline Edition loaded!",
-        Duration = 5
-    })
-end)
+   
