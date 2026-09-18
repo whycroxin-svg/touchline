@@ -1,10 +1,10 @@
 --[[
-    SOU HUB - TOUCHLINE WINTER EDITION v3
-    Ball Hitbox fix + 1-50 size + Full surface hit + No snow
-    Player List kaldirildi
+    SOU HUB - TOUCHLINE WINTER EDITION v4
+    Ball Hitbox FIX - Ayri hitbox parcasi
+    Player List kaldirildi + Kar kapali
 ]]
 
-print("[SOU HUB] Touchline Winter Edition v3 yukleniyor...")
+print("[SOU HUB] Touchline Winter Edition v4 yukleniyor...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -74,19 +74,13 @@ local Settings = {
     GoalAimbot = false, GoalAimStrength = 0.5,
     AutoDive = false,
     Fullbright = false,
-    
-    BallESP = false,
-    BallESPColor = Color3.fromRGB(255, 220, 60),
-    
+    BallESP = false, BallESPColor = Color3.fromRGB(255, 220, 60),
     BallHitboxESP = false,
-    
     HitboxESP = false,
-    
     Watermark = true,
     FPSDisplay = true,
     PingDisplay = true,
     GuiTransparency = 250,
-    SnowEnabled = false,
 }
 
 -- =============================================
@@ -139,15 +133,8 @@ end
 for _, loc in ipairs({game:GetService("CoreGui"), LocalPlayer:FindFirstChild("PlayerGui")}) do
     pcall(function() 
         local o = loc:FindFirstChild("SOUHUB_Winter"); if o then o:Destroy() end
-        local o2 = loc:FindFirstChild("SOUHUB_Snow"); if o2 then o2:Destroy() end
     end)
 end
-pcall(function() 
-    if gethui then 
-        local o = gethui():FindFirstChild("SOUHUB_Winter"); if o then o:Destroy() end
-        local o2 = gethui():FindFirstChild("SOUHUB_Snow"); if o2 then o2:Destroy() end
-    end 
-end)
 
 local function tween(obj, time, props, style, dir)
     local info = TweenInfo.new(time or 0.2, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
@@ -170,7 +157,7 @@ if guiParent:IsA("ScreenGui") then
     ScreenGui = guiParent; ScreenGui.Name = "SOUHUB_Winter"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 999
 else ScreenGui.Parent = guiParent end
 
--- SPLASH SCREEN
+-- SPLASH
 local splashGui = Instance.new("ScreenGui")
 splashGui.Name = "SOUHUB_Splash"
 splashGui.ResetOnSpawn = false
@@ -464,7 +451,7 @@ tl.Parent = MainFrame
 local cl = Instance.new("TextLabel")
 cl.Size = UDim2.new(1, 0, 0, 14); cl.Position = UDim2.new(0, 24, 0, 32)
 cl.BackgroundTransparency = 1
-cl.Text = "TOUCHLINE EDITION v3"
+cl.Text = "TOUCHLINE EDITION v4"
 cl.TextColor3 = CurrentTheme.SubText
 cl.TextSize = 9
 cl.Font = Enum.Font.GothamSemibold
@@ -476,7 +463,7 @@ local versionLbl = Instance.new("TextLabel")
 versionLbl.Size = UDim2.new(0, 60, 0, 14)
 versionLbl.Position = UDim2.new(1, -120, 0, 20)
 versionLbl.BackgroundTransparency = 1
-versionLbl.Text = "v3.0"
+versionLbl.Text = "v4.0"
 versionLbl.TextColor3 = CurrentTheme.SubText
 versionLbl.TextSize = 10
 versionLbl.Font = Enum.Font.Gotham
@@ -615,7 +602,7 @@ ContentArea.ClipsDescendants = true
 ContentArea.ZIndex = 3
 ContentArea.Parent = MainFrame
 
--- TABS (PLAYERS kaldırıldı)
+-- TABS
 local tabConfig = {
     {Name = "BALL",      Sub = "Ball control"},
     {Name = "ESP",       Sub = "Visual overlay"},
@@ -1371,7 +1358,9 @@ RunService.RenderStepped:Connect(function()
     Watermark.Visible = getWatermark()
 end)
 
+-- =============================================
 -- ESP SYSTEM
+-- =============================================
 local ballHighlight = nil
 local ballSphere = nil
 local charSphereData = {}
@@ -1397,6 +1386,7 @@ local function updateESP()
         if ballHighlight then ballHighlight:Destroy() ballHighlight = nil end
     end
     
+    -- BALL HITBOX ESP (SINIRSIZ BÜYÜKLÜK - SADECE GÖRSEL)
     if Settings.BallHitboxESP and ball then
         if not ballSphere or ballSphere.Parent ~= ball then
             if ballSphere then ballSphere:Destroy() end
@@ -1444,10 +1434,36 @@ local function updateESP()
     end
 end
 
--- FEATURE LOOPS
-local ballPartRef = nil
+-- =============================================
+-- BALL HITBOX SYSTEM (YENİ - AYRI HITBOX PARÇASI)
+-- =============================================
+local hitboxPart = nil
 local originalBallSize = nil
 local originalBallCanCollide = nil
+local ballRef = nil
+
+local function createHitboxPart(ball, size)
+    -- Ayrı bir görünmez parça oluştur (hitbox için)
+    local part = Instance.new("Part")
+    part.Name = "SOUHUB_Hitbox"
+    part.Shape = Enum.PartType.Ball
+    part.Size = Vector3.new(size, size, size)
+    part.CFrame = ball.CFrame
+    part.Anchored = false
+    part.CanCollide = true
+    part.Transparency = 1
+    part.Massless = false
+    part.CustomPhysicalProperties = PhysicalProperties.new(0.7, 0.3, 0.5, 1, 1)
+    part.Parent = workspace
+    
+    -- Ball ile hitbox'ı birbirine bağla (Weld)
+    local weld = Instance.new("WeldConstraint")
+    weld.Part0 = part
+    weld.Part1 = ball
+    weld.Parent = part
+    
+    return part
+end
 
 RunService.RenderStepped:Connect(function()
     updateESP()
@@ -1456,62 +1472,29 @@ RunService.RenderStepped:Connect(function()
     
     if ball then
         if Settings.BallHitbox then
-            if ballPartRef ~= ball then
-                if ballPartRef and originalBallSize then
-                    pcall(function()
-                        ballPartRef.Size = originalBallSize
-                        ballPartRef.CanCollide = originalBallCanCollide
-                    end)
+            -- Ball referansı değiştiyse
+            if ballRef ~= ball then
+                if hitboxPart then
+                    pcall(function() hitboxPart:Destroy() end)
+                    hitboxPart = nil
                 end
-                ballPartRef = ball
-                originalBallSize = ball.Size
-                originalBallCanCollide = ball.CanCollide
+                ballRef = ball
             end
             
             local s = Settings.BallSize
             
-            if ball:IsA("BasePart") then
-                ball.Size = Vector3.new(s, s, s)
-                ball.CanCollide = false
-                ball.Massless = true
-                
-                local mesh = ball:FindFirstChildOfClass("SpecialMesh")
-                if mesh then
-                    mesh.Scale = Vector3.new(s / 2, s / 2, s / 2)
-                end
-                
-                for _, child in ipairs(ball:GetChildren()) do
-                    if child:IsA("BasePart") and child ~= ball then
-                        if not child:GetAttribute("OriginalSize") then
-                            child:SetAttribute("OriginalSize", child.Size)
-                        end
-                        local orig = child:GetAttribute("OriginalSize")
-                        child.Size = orig * (s / 2)
-                        child.CanCollide = false
-                        child.Massless = true
-                    end
-                end
+            -- Hitbox parçası oluştur veya güncelle
+            if not hitboxPart or not hitboxPart.Parent then
+                hitboxPart = createHitboxPart(ball, s)
+            else
+                hitboxPart.Size = Vector3.new(s, s, s)
+                hitboxPart.CFrame = ball.CFrame
             end
         else
-            if ballPartRef and originalBallSize then
-                pcall(function()
-                    ballPartRef.Size = originalBallSize
-                    ballPartRef.CanCollide = originalBallCanCollide
-                end)
-                
-                for _, child in ipairs(ballPartRef:GetChildren()) do
-                    if child:IsA("BasePart") then
-                        local orig = child:GetAttribute("OriginalSize")
-                        if orig then
-                            child.Size = orig
-                            child:SetAttribute("OriginalSize", nil)
-                        end
-                    end
-                end
-                
-                ballPartRef = nil
-                originalBallSize = nil
-                originalBallCanCollide = nil
+            if hitboxPart then
+                pcall(function() hitboxPart:Destroy() end)
+                hitboxPart = nil
+                ballRef = nil
             end
         end
     end
@@ -1607,7 +1590,7 @@ task.spawn(function()
     }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     
     task.wait(0.7)
-    showToast("SOU HUB", "Touchline Edition v3 hazir!", "success")
+    showToast("SOU HUB", "Touchline Edition v4 hazir!", "success")
     task.wait(0.6)
     showToast("Interface", "Press Right Shift to toggle", "info")
 end)
@@ -1615,9 +1598,9 @@ end)
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "SOU HUB",
-        Text = "Touchline Edition v3 loaded!",
+        Text = "Touchline Edition v4 loaded!",
         Duration = 5
     })
 end)
 
-print("[SOU HUB] Touchline Winter Edition v3 yuklendi!")
+print("[SOU HUB] Touchline Winter Edition v4 yuklendi!")
