@@ -1,10 +1,9 @@
 --[[
-    SOU HUB - TOUCHLINE WINTER EDITION
-    Winter GUI + Touchline ozellikleri
-    Kar yagisi + Splash + 8 sekmeli GUI
+    SOU HUB - TOUCHLINE WINTER EDITION v2
+    Ball Hitbox fix + 1-50 size + Full surface hit + No snow
 ]]
 
-print("[SOU HUB] Touchline Winter Edition yukleniyor...")
+print("[SOU HUB] Touchline Winter Edition v2 yukleniyor...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -88,21 +87,38 @@ local Settings = {
     FPSDisplay = true,
     PingDisplay = true,
     GuiTransparency = 250,
-    ParticlesEnabled = true,
+    SnowEnabled = false,  -- KAR KAPALI
 }
 
 -- =============================================
--- TOP & KALE BULMA
+-- TOP & KALE
 -- =============================================
+local cachedBall = nil
+local ballCacheTime = 0
+
 local function findBall()
+    local now = tick()
+    if cachedBall and cachedBall.Parent and (now - ballCacheTime) < 0.3 then
+        return cachedBall
+    end
+    
     local footballs = workspace:FindFirstChild("Footballs")
     if footballs then
         local ball = footballs:FindFirstChild("Ball")
-        if ball and ball:IsA("BasePart") then return ball end
+        if ball and ball:IsA("BasePart") then
+            cachedBall = ball
+            ballCacheTime = now
+            return ball
+        end
     end
+    
     for _, obj in ipairs(workspace:GetDescendants()) do
         if obj:IsA("BasePart") and obj.Shape == Enum.PartType.Ball then
-            if obj.Size.X > 0.5 and obj.Size.X < 30 then return obj end
+            if obj.Size.X > 0.5 and obj.Size.X < 50 then
+                cachedBall = obj
+                ballCacheTime = now
+                return obj
+            end
         end
     end
     return nil
@@ -134,9 +150,6 @@ pcall(function()
     end 
 end)
 
--- =============================================
--- TWEEN HELPER
--- =============================================
 local function tween(obj, time, props, style, dir)
     local info = TweenInfo.new(time or 0.2, style or Enum.EasingStyle.Quint, dir or Enum.EasingDirection.Out)
     local t = TweenService:Create(obj, info, props)
@@ -158,50 +171,48 @@ if guiParent:IsA("ScreenGui") then
     ScreenGui = guiParent; ScreenGui.Name = "SOUHUB_Winter"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 999
 else ScreenGui.Parent = guiParent end
 
--- =============================================
--- KAR YAGISI
--- =============================================
-local snowGui = Instance.new("ScreenGui")
-snowGui.Name = "SOUHUB_Snow"
-snowGui.ResetOnSpawn = false
-snowGui.DisplayOrder = 1
-snowGui.IgnoreGuiInset = true
-snowGui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-snowGui.Parent = guiParent
+-- KAR YAGISI KAPALI (SnowEnabled = false ise çalışmaz)
+if Settings.SnowEnabled then
+    local snowGui = Instance.new("ScreenGui")
+    snowGui.Name = "SOUHUB_Snow"
+    snowGui.ResetOnSpawn = false
+    snowGui.DisplayOrder = 1
+    snowGui.IgnoreGuiInset = true
+    snowGui.Parent = guiParent
 
-local snowContainer = Instance.new("Frame")
-snowContainer.Name = "SnowContainer"
-snowContainer.Size = UDim2.new(1, 0, 1, 0)
-snowContainer.BackgroundTransparency = 1
-snowContainer.Parent = snowGui
+    local snowContainer = Instance.new("Frame")
+    snowContainer.Size = UDim2.new(1, 0, 1, 0)
+    snowContainer.BackgroundTransparency = 1
+    snowContainer.Parent = snowGui
 
-local function createSnowflake()
-    local sf = Instance.new("TextLabel")
-    sf.Size = UDim2.new(0, math.random(8, 18), 0, math.random(8, 18))
-    sf.Position = UDim2.new(math.random(), 0, -0.05, 0)
-    sf.BackgroundTransparency = 1
-    sf.Text = "❄"
-    sf.TextColor3 = Color3.fromRGB(255, 255, 255)
-    sf.TextSize = math.random(8, 18)
-    sf.TextTransparency = math.random(3, 7) / 10
-    sf.Font = Enum.Font.GothamBold
-    sf.Rotation = math.random(0, 360)
-    sf.Parent = snowContainer
-    local dur = math.random(6, 14)
-    local drift = math.random(-20, 20) / 100
-    tween(sf, dur, {
-        Position = UDim2.new(sf.Position.X.Scale + drift, 0, 1.1, 0),
-        Rotation = sf.Rotation + math.random(-180, 180)
-    }, Enum.EasingStyle.Linear)
-    task.delay(dur, function() if sf and sf.Parent then sf:Destroy() end end)
-end
-
-task.spawn(function()
-    while snowContainer.Parent do
-        createSnowflake()
-        task.wait(math.random(5, 15) / 100)
+    local function createSnowflake()
+        local sf = Instance.new("TextLabel")
+        sf.Size = UDim2.new(0, math.random(8, 18), 0, math.random(8, 18))
+        sf.Position = UDim2.new(math.random(), 0, -0.05, 0)
+        sf.BackgroundTransparency = 1
+        sf.Text = "❄"
+        sf.TextColor3 = Color3.fromRGB(255, 255, 255)
+        sf.TextSize = math.random(8, 18)
+        sf.TextTransparency = math.random(3, 7) / 10
+        sf.Font = Enum.Font.GothamBold
+        sf.Rotation = math.random(0, 360)
+        sf.Parent = snowContainer
+        local dur = math.random(6, 14)
+        local drift = math.random(-20, 20) / 100
+        tween(sf, dur, {
+            Position = UDim2.new(sf.Position.X.Scale + drift, 0, 1.1, 0),
+            Rotation = sf.Rotation + math.random(-180, 180)
+        }, Enum.EasingStyle.Linear)
+        task.delay(dur, function() if sf and sf.Parent then sf:Destroy() end end)
     end
-end)
+
+    task.spawn(function()
+        while snowContainer.Parent do
+            createSnowflake()
+            task.wait(math.random(5, 15) / 100)
+        end
+    end)
+end
 
 -- =============================================
 -- SPLASH SCREEN
@@ -450,7 +461,6 @@ mainStroke.Color = CurrentTheme.Button
 mainStroke.Thickness = 1
 mainStroke.Transparency = InitialTransparency + 0.2
 
--- Anime kız arka planı
 local animeBg = Instance.new("ImageLabel")
 animeBg.Name = "AnimeBackground"
 animeBg.Size = UDim2.new(1, 0, 1, 0)
@@ -506,7 +516,7 @@ tl.Parent = MainFrame
 local cl = Instance.new("TextLabel")
 cl.Size = UDim2.new(1, 0, 0, 14); cl.Position = UDim2.new(0, 24, 0, 32)
 cl.BackgroundTransparency = 1
-cl.Text = "TOUCHLINE EDITION"
+cl.Text = "TOUCHLINE EDITION v2"
 cl.TextColor3 = CurrentTheme.SubText
 cl.TextSize = 9
 cl.Font = Enum.Font.GothamSemibold
@@ -518,7 +528,7 @@ local versionLbl = Instance.new("TextLabel")
 versionLbl.Size = UDim2.new(0, 60, 0, 14)
 versionLbl.Position = UDim2.new(1, -120, 0, 20)
 versionLbl.BackgroundTransparency = 1
-versionLbl.Text = "v1.0"
+versionLbl.Text = "v2.0"
 versionLbl.TextColor3 = CurrentTheme.SubText
 versionLbl.TextSize = 10
 versionLbl.Font = Enum.Font.Gotham
@@ -555,9 +565,7 @@ closeBtn.MouseButton1Click:Connect(function()
     MainFrame.BackgroundTransparency = 1 - (Settings.GuiTransparency / 500)
 end)
 
--- =============================================
 -- SIDEBAR
--- =============================================
 local Sidebar = Instance.new("Frame")
 Sidebar.Name = "Sidebar"
 Sidebar.Size = UDim2.new(0, 155, 1, -110)
@@ -649,9 +657,7 @@ local sideLayout = Instance.new("UIListLayout", SideScroll)
 sideLayout.SortOrder = Enum.SortOrder.LayoutOrder
 sideLayout.Padding = UDim.new(0, 2)
 
--- =============================================
 -- CONTENT AREA
--- =============================================
 local ContentArea = Instance.new("Frame")
 ContentArea.Name = "ContentArea"
 ContentArea.Size = UDim2.new(1, -190, 1, -110)
@@ -661,14 +667,11 @@ ContentArea.ClipsDescendants = true
 ContentArea.ZIndex = 3
 ContentArea.Parent = MainFrame
 
--- =============================================
--- TAB SYSTEM
--- =============================================
+-- TABS
 local tabConfig = {
     {Name = "BALL",      Sub = "Ball control"},
     {Name = "ESP",       Sub = "Visual overlay"},
     {Name = "AIMBOT",    Sub = "Goal targeting"},
-    {Name = "PLAYERS",   Sub = "Player actions"},
     {Name = "WORLD",     Sub = "Environment"},
     {Name = "THEMES",    Sub = "Appearance"},
     {Name = "SETTINGS",  Sub = "Configuration"},
@@ -809,9 +812,7 @@ for i, config in ipairs(tabConfig) do
     end)
 end
 
--- =============================================
 -- UI BUILDERS
--- =============================================
 local function addToggle(page, name, default, callback, order, withKeybind)
     local row = Instance.new("Frame")
     row.Size = UDim2.new(1, -8, 0, 34)
@@ -1097,14 +1098,10 @@ local function addCycleButton(page, name, options, default, callback, order)
     return function() return options[idx] end
 end
 
--- =============================================
--- TEMA UYGULAMA
--- =============================================
+-- THEME APPLY
 local function applyTheme(themeName)
     if not Themes[themeName] then return end
     CurrentTheme = Themes[themeName]
-    
-    local baseTransparency = 1 - (Settings.GuiTransparency / 500)
     
     MainFrame.BackgroundColor3 = CurrentTheme.Bg
     mainStroke.Color = CurrentTheme.Button
@@ -1193,9 +1190,7 @@ local function applyTheme(themeName)
     showToast("Theme Applied", CurrentTheme.Name .. " • " .. CurrentTheme.Category, "success")
 end
 
--- =============================================
--- PAGE 1: BALL (Ball Control)
--- =============================================
+-- PAGE 1: BALL
 local p1 = tabPages["BALL"]
 addLabel(p1, "BALL CONTROL", 1)
 local getReach = addToggle(p1, "Reach", false, function(v) Settings.Reach = v end, 2, true)
@@ -1204,7 +1199,7 @@ local getReachValue = addSlider(p1, "Reach Distance", 5, 100, 30, function(v) Se
 addSeparator(p1, 4)
 addLabel(p1, "BALL HITBOX", 5)
 local getBallHitbox = addToggle(p1, "Ball Hitbox (Buyut)", false, function(v) Settings.BallHitbox = v end, 6, true)
-local getBallSize = addSlider(p1, "Ball Size", 1, 20, 2, function(v) Settings.BallSize = v end, 7)
+local getBallSize = addSlider(p1, "Ball Size (1-50)", 1, 50, 2, function(v) Settings.BallSize = v end, 7)
 
 addSeparator(p1, 8)
 addLabel(p1, "BALL ESP", 9)
@@ -1218,22 +1213,12 @@ addSeparator(p1, 12)
 addLabel(p1, "BALL HITBOX ESP", 13)
 local getBallHitboxESP = addToggle(p1, "Ball Hitbox ESP (Cember)", false, function(v) Settings.BallHitboxESP = v end, 14, true)
 
--- =============================================
 -- PAGE 2: ESP
--- =============================================
 local p2 = tabPages["ESP"]
 addLabel(p2, "PLAYER HITBOX", 1)
 local getHitboxESP = addToggle(p2, "Hitbox ESP (Karakter)", false, function(v) Settings.HitboxESP = v end, 2, true)
 
-addSeparator(p2, 3)
-addLabel(p2, "BALL ESP AYARLARI", 4)
-local getBallESPBox = addToggle(p2, "Box", true, function(v) Settings.BallESPBox = v end, 5, false)
-local getBallESPName = addToggle(p2, "Name", true, function(v) Settings.BallESPName = v end, 6, false)
-local getBallESPDistance = addToggle(p2, "Distance", true, function(v) Settings.BallESPDistance = v end, 7, false)
-
--- =============================================
 -- PAGE 3: AIMBOT
--- =============================================
 local p3 = tabPages["AIMBOT"]
 addLabel(p3, "GOAL AIMBOT", 1)
 local getGoalAimbot = addToggle(p3, "Goal Aimbot", false, function(v) Settings.GoalAimbot = v end, 2, true)
@@ -1243,41 +1228,13 @@ addSeparator(p3, 4)
 addLabel(p3, "GOALKEEPER", 5)
 local getAutoDive = addToggle(p3, "Auto Dive", false, function(v) Settings.AutoDive = v end, 6, true)
 
--- =============================================
--- PAGE 4: PLAYERS
--- =============================================
-local p4 = tabPages["PLAYERS"]
-addLabel(p4, "PLAYER LIST", 1)
-local playerListLabel = Instance.new("TextLabel")
-playerListLabel.Size = UDim2.new(1,-8,0,20)
-playerListLabel.BackgroundTransparency = 1
-playerListLabel.Text = "Oyuncular yukleniyor..."
-playerListLabel.TextColor3 = CurrentTheme.SubText
-playerListLabel.TextSize = 10
-playerListLabel.Font = Enum.Font.Gotham
-playerListLabel.TextXAlignment = Enum.TextXAlignment.Left
-playerListLabel.LayoutOrder = 2
-playerListLabel.ZIndex = 3
-playerListLabel.Parent = p4
-table.insert(uiElements, {element=playerListLabel, type="sectionLabel"})
+-- PAGE 4: WORLD
+local p4 = tabPages["WORLD"]
+addLabel(p4, "LIGHTING", 1)
+local getFullbright = addToggle(p4, "Fullbright", false, function(v) Settings.Fullbright = v end, 2, true)
 
-task.spawn(function()
-    while playerListLabel.Parent do
-        local count = #Players:GetPlayers()
-        playerListLabel.Text = "Toplam " .. count .. " oyuncu • " .. LocalPlayer.Name .. " (sen)"
-        task.wait(2)
-    end
-end)
-
--- =============================================
--- PAGE 5: WORLD
--- =============================================
-local p5 = tabPages["WORLD"]
-addLabel(p5, "LIGHTING", 1)
-local getFullbright = addToggle(p5, "Fullbright", false, function(v) Settings.Fullbright = v end, 2, true)
-
-addSeparator(p5, 3)
-addLabel(p5, "SERVER", 4)
+addSeparator(p4, 3)
+addLabel(p4, "SERVER", 4)
 local rejoinBtn = Instance.new("TextButton")
 rejoinBtn.Size = UDim2.new(1,-8,0,36)
 rejoinBtn.BackgroundColor3 = CurrentTheme.Button
@@ -1290,7 +1247,7 @@ rejoinBtn.Font = Enum.Font.GothamSemibold
 rejoinBtn.AutoButtonColor = false
 rejoinBtn.LayoutOrder = 5
 rejoinBtn.ZIndex = 3
-rejoinBtn.Parent = p5
+rejoinBtn.Parent = p4
 Instance.new("UICorner", rejoinBtn).CornerRadius = UDim.new(0,4)
 rejoinBtn.MouseButton1Click:Connect(function()
     showToast("Server", "Reconnecting...", "info")
@@ -1298,11 +1255,9 @@ rejoinBtn.MouseButton1Click:Connect(function()
     pcall(function() TeleportService:TeleportToPlaceInstance(game.PlaceId, game.JobId, LocalPlayer) end)
 end)
 
--- =============================================
--- PAGE 6: THEMES
--- =============================================
-local p6 = tabPages["THEMES"]
-addLabel(p6, "SELECT A THEME", 1)
+-- PAGE 5: THEMES
+local p5 = tabPages["THEMES"]
+addLabel(p5, "SELECT A THEME", 1)
 
 _G.SOUHUB_ThemeButtons = _G.SOUHUB_ThemeButtons or {}
 
@@ -1383,29 +1338,25 @@ local function createThemeGrid(parent, category, order)
     end
 end
 
-createThemeGrid(p6, "Classic", 2)
-createThemeGrid(p6, "Special", 3)
+createThemeGrid(p5, "Classic", 2)
+createThemeGrid(p5, "Special", 3)
 
--- =============================================
--- PAGE 7: SETTINGS
--- =============================================
-local p7 = tabPages["SETTINGS"]
-addLabel(p7, "INTERFACE", 1)
-local getGuiTransparency = addSlider(p7, "Gui Transparency", 0, 500, Settings.GuiTransparency, function(v)
+-- PAGE 6: SETTINGS
+local p6 = tabPages["SETTINGS"]
+addLabel(p6, "INTERFACE", 1)
+local getGuiTransparency = addSlider(p6, "Gui Transparency", 0, 500, Settings.GuiTransparency, function(v)
     Settings.GuiTransparency = v
     local transparency = 1 - (v / 500)
     MainFrame.BackgroundTransparency = transparency
 end, 2)
 
-addSeparator(p7, 3)
-addLabel(p7, "OVERLAY", 4)
-local getWatermark = addToggle(p7, "Watermark", true, nil, 5, false)
-local getFPSDisplay = addToggle(p7, "FPS Display", true, nil, 6, false)
-local getPingDisplay = addToggle(p7, "Ping Display", true, nil, 7, false)
+addSeparator(p6, 3)
+addLabel(p6, "OVERLAY", 4)
+local getWatermark = addToggle(p6, "Watermark", true, nil, 5, false)
+local getFPSDisplay = addToggle(p6, "FPS Display", true, nil, 6, false)
+local getPingDisplay = addToggle(p6, "Ping Display", true, nil, 7, false)
 
--- =============================================
 -- WATERMARK
--- =============================================
 local Watermark = Instance.new("Frame")
 Watermark.Name = "Watermark"
 Watermark.Size = UDim2.new(0, 220, 0, 38)
@@ -1473,21 +1424,19 @@ RunService.RenderStepped:Connect(function()
 end)
 
 -- =============================================
--- ESP SYSTEM
+-- ESP SYSTEM (FIXED)
 -- =============================================
 local ballHighlight = nil
-local ballBillboard = nil
 local ballSphere = nil
 local charSphereData = {}
-local ballHitboxBox = nil
+local ballPartRef = nil
 local originalBallSize = nil
-local originalBallPart = nil
-local originalCanCollide = nil
+local originalBallCanCollide = nil
 
 local function updateESP()
     local ball = findBall()
     
-    -- BALL ESP (Highlight + Billboard)
+    -- BALL ESP
     if Settings.BallESP and ball then
         if not ballHighlight or ballHighlight.Parent ~= ball then
             if ballHighlight then ballHighlight:Destroy() end
@@ -1500,57 +1449,10 @@ local function updateESP()
             ballHighlight.Adornee = ball
             ballHighlight.Parent = ball
         end
-        
-        if not ballBillboard or ballBillboard.Parent ~= ball then
-            if ballBillboard then ballBillboard:Destroy() end
-            ballBillboard = Instance.new("BillboardGui")
-            ballBillboard.Name = "SOUHUB_BallInfo"
-            ballBillboard.Size = UDim2.new(0, 100, 0, 32)
-            ballBillboard.StudsOffset = Vector3.new(0, 2.5, 0)
-            ballBillboard.AlwaysOnTop = true
-            ballBillboard.Adornee = ball
-            ballBillboard.Parent = ball
-            
-            local nameLbl = Instance.new("TextLabel")
-            nameLbl.Name = "NameLbl"
-            nameLbl.Size = UDim2.new(1, 0, 0, 16)
-            nameLbl.BackgroundTransparency = 1
-            nameLbl.Text = "BALL"
-            nameLbl.TextColor3 = Settings.BallESPColor
-            nameLbl.TextSize = 13
-            nameLbl.Font = Enum.Font.GothamBold
-            nameLbl.TextStrokeTransparency = 0.3
-            nameLbl.Parent = ballBillboard
-            
-            local distLbl = Instance.new("TextLabel")
-            distLbl.Name = "DistLbl"
-            distLbl.Size = UDim2.new(1, 0, 0, 13)
-            distLbl.Position = UDim2.new(0, 0, 0, 17)
-            distLbl.BackgroundTransparency = 1
-            distLbl.Text = "0m"
-            distLbl.TextColor3 = Settings.BallESPColor
-            distLbl.TextSize = 11
-            distLbl.Font = Enum.Font.GothamBold
-            distLbl.TextStrokeTransparency = 0.3
-            distLbl.Parent = ballBillboard
-        end
-        
-        if ballBillboard then
-            local nameLbl = ballBillboard:FindFirstChild("NameLbl")
-            local distLbl = ballBillboard:FindFirstChild("DistLbl")
-            if nameLbl then nameLbl.TextColor3 = Settings.BallESPColor end
-            if distLbl then
-                distLbl.TextColor3 = Settings.BallESPColor
-                local char = LocalPlayer.Character
-                if char and char:FindFirstChild("HumanoidRootPart") then
-                    local d = (char.HumanoidRootPart.Position - ball.Position).Magnitude
-                    distLbl.Text = string.format("%.0fm", d)
-                end
-            end
-        end
+        ballHighlight.FillColor = Settings.BallESPColor
+        ballHighlight.OutlineColor = Settings.BallESPColor
     else
         if ballHighlight then ballHighlight:Destroy() ballHighlight = nil end
-        if ballBillboard then ballBillboard:Destroy() ballBillboard = nil end
     end
     
     -- BALL HITBOX ESP (ÇEMBER)
@@ -1603,7 +1505,7 @@ local function updateESP()
 end
 
 -- =============================================
--- FEATURE LOOPS
+-- FEATURE LOOPS (BALL HITBOX FIXED - FULL SURFACE HIT)
 -- =============================================
 RunService.RenderStepped:Connect(function()
     updateESP()
@@ -1612,23 +1514,66 @@ RunService.RenderStepped:Connect(function()
     
     if ball then
         if Settings.BallHitbox then
-            if originalBallPart ~= ball then
-                originalBallPart = ball
+            if ballPartRef ~= ball then
+                if ballPartRef and originalBallSize then
+                    pcall(function()
+                        ballPartRef.Size = originalBallSize
+                        ballPartRef.CanCollide = originalBallCanCollide
+                    end)
+                end
+                ballPartRef = ball
                 originalBallSize = ball.Size
-                originalCanCollide = ball.CanCollide
+                originalBallCanCollide = ball.CanCollide
             end
+            
             local s = Settings.BallSize
-            ball.Size = Vector3.new(s, s, s)
-            ball.CanCollide = false
+            
+            -- HITBOX'I BÜYÜT (tam yüzey)
+            if ball:IsA("BasePart") then
+                -- Ana top parçasını büyüt
+                ball.Size = Vector3.new(s, s, s)
+                ball.CanCollide = false
+                ball.Massless = true
+                
+                -- Mesh veya SpecialMesh varsa büyüt
+                local mesh = ball:FindFirstChildOfClass("SpecialMesh")
+                if mesh then
+                    mesh.Scale = Vector3.new(s / 2, s / 2, s / 2)
+                end
+                
+                -- Top'un içindeki tüm parçaları büyüt (hitbox için)
+                for _, child in ipairs(ball:GetChildren()) do
+                    if child:IsA("BasePart") and child ~= ball then
+                        if not child:GetAttribute("OriginalSize") then
+                            child:SetAttribute("OriginalSize", child.Size)
+                        end
+                        local orig = child:GetAttribute("OriginalSize")
+                        child.Size = orig * (s / 2)
+                        child.CanCollide = false
+                        child.Massless = true
+                    end
+                end
+            end
         else
-            if originalBallPart and originalBallSize then
+            if ballPartRef and originalBallSize then
                 pcall(function()
-                    originalBallPart.Size = originalBallSize
-                    originalBallPart.CanCollide = originalCanCollide
+                    ballPartRef.Size = originalBallSize
+                    ballPartRef.CanCollide = originalBallCanCollide
                 end)
-                originalBallPart = nil
+                
+                for _, child in ipairs(ballPartRef:GetChildren()) do
+                    if child:IsA("BasePart") then
+                        local orig = child:GetAttribute("OriginalSize")
+                        if orig then
+                            child.Size = orig
+                            child:SetAttribute("OriginalSize", nil)
+                        end
+                    end
+                end
+                
+                ballPartRef = nil
                 originalBallSize = nil
-                originalCanCollide = nil
+                originalBallCanCollide = nil
             end
         end
     end
@@ -1672,9 +1617,7 @@ RunService.RenderStepped:Connect(function()
     end
 end)
 
--- =============================================
 -- INPUT
--- =============================================
 UserInputService.InputBegan:Connect(function(input, gpe)
     if activeKeybindBtn and input.UserInputType == Enum.UserInputType.Keyboard then
         if input.KeyCode ~= Enum.KeyCode.Escape and input.KeyCode ~= Enum.KeyCode.Unknown then
@@ -1703,24 +1646,17 @@ UserInputService.InputBegan:Connect(function(input, gpe)
     end
 end)
 
--- =============================================
--- ESC MENU
--- =============================================
-local menuOpen = false
 pcall(function()
     GuiService.MenuOpened:Connect(function()
-        menuOpen = true
         MainFrame.Visible = false
         Watermark.Visible = false
     end)
     GuiService.MenuClosed:Connect(function()
-        menuOpen = false
+        Watermark.Visible = getWatermark()
     end)
 end)
 
--- =============================================
--- SPLASH SONRASI GUI AÇ
--- =============================================
+-- SPLASH SONRASI
 task.spawn(function()
     task.wait(2.8)
     MainFrame.Visible = true
@@ -1733,7 +1669,7 @@ task.spawn(function()
     }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     
     task.wait(0.7)
-    showToast("SOU HUB", "Touchline Edition hazir!", "success")
+    showToast("SOU HUB", "Touchline Edition v2 hazir!", "success")
     task.wait(0.6)
     showToast("Interface", "Press Right Shift to toggle", "info")
 end)
@@ -1741,9 +1677,9 @@ end)
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "SOU HUB",
-        Text = "Touchline Edition loaded!",
+        Text = "Touchline Edition v2 loaded!",
         Duration = 5
     })
 end)
 
-print("[SOU HUB] Touchline Winter Edition yuklendi!")
+print("[SOU HUB] Touchline Winter Edition v2 yuklendi!")
