@@ -1,9 +1,10 @@
 --[[
-    SOU HUB - TOUCHLINE WINTER EDITION v2
+    SOU HUB - TOUCHLINE WINTER EDITION v3
     Ball Hitbox fix + 1-50 size + Full surface hit + No snow
+    Player List kaldirildi
 ]]
 
-print("[SOU HUB] Touchline Winter Edition v2 yukleniyor...")
+print("[SOU HUB] Touchline Winter Edition v3 yukleniyor...")
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -78,16 +79,14 @@ local Settings = {
     BallESPColor = Color3.fromRGB(255, 220, 60),
     
     BallHitboxESP = false,
-    BallHitboxESPColor = Color3.fromRGB(120, 255, 140),
     
     HitboxESP = false,
-    HitboxESPColor = Color3.fromRGB(120, 220, 160),
     
     Watermark = true,
     FPSDisplay = true,
     PingDisplay = true,
     GuiTransparency = 250,
-    SnowEnabled = false,  -- KAR KAPALI
+    SnowEnabled = false,
 }
 
 -- =============================================
@@ -171,52 +170,7 @@ if guiParent:IsA("ScreenGui") then
     ScreenGui = guiParent; ScreenGui.Name = "SOUHUB_Winter"; ScreenGui.ResetOnSpawn = false; ScreenGui.DisplayOrder = 999
 else ScreenGui.Parent = guiParent end
 
--- KAR YAGISI KAPALI (SnowEnabled = false ise çalışmaz)
-if Settings.SnowEnabled then
-    local snowGui = Instance.new("ScreenGui")
-    snowGui.Name = "SOUHUB_Snow"
-    snowGui.ResetOnSpawn = false
-    snowGui.DisplayOrder = 1
-    snowGui.IgnoreGuiInset = true
-    snowGui.Parent = guiParent
-
-    local snowContainer = Instance.new("Frame")
-    snowContainer.Size = UDim2.new(1, 0, 1, 0)
-    snowContainer.BackgroundTransparency = 1
-    snowContainer.Parent = snowGui
-
-    local function createSnowflake()
-        local sf = Instance.new("TextLabel")
-        sf.Size = UDim2.new(0, math.random(8, 18), 0, math.random(8, 18))
-        sf.Position = UDim2.new(math.random(), 0, -0.05, 0)
-        sf.BackgroundTransparency = 1
-        sf.Text = "❄"
-        sf.TextColor3 = Color3.fromRGB(255, 255, 255)
-        sf.TextSize = math.random(8, 18)
-        sf.TextTransparency = math.random(3, 7) / 10
-        sf.Font = Enum.Font.GothamBold
-        sf.Rotation = math.random(0, 360)
-        sf.Parent = snowContainer
-        local dur = math.random(6, 14)
-        local drift = math.random(-20, 20) / 100
-        tween(sf, dur, {
-            Position = UDim2.new(sf.Position.X.Scale + drift, 0, 1.1, 0),
-            Rotation = sf.Rotation + math.random(-180, 180)
-        }, Enum.EasingStyle.Linear)
-        task.delay(dur, function() if sf and sf.Parent then sf:Destroy() end end)
-    end
-
-    task.spawn(function()
-        while snowContainer.Parent do
-            createSnowflake()
-            task.wait(math.random(5, 15) / 100)
-        end
-    end)
-end
-
--- =============================================
 -- SPLASH SCREEN
--- =============================================
 local splashGui = Instance.new("ScreenGui")
 splashGui.Name = "SOUHUB_Splash"
 splashGui.ResetOnSpawn = false
@@ -332,9 +286,7 @@ task.spawn(function()
     splashGui:Destroy()
 end)
 
--- =============================================
 -- TOAST
--- =============================================
 local toastContainer = Instance.new("Frame")
 toastContainer.Name = "ToastContainer"
 toastContainer.Size = UDim2.new(0, 320, 1, -20)
@@ -415,9 +367,7 @@ local function showToast(title, message, toastType)
     end)
 end
 
--- =============================================
 -- DRAGGABLE
--- =============================================
 local function makeDraggable(frame, handle)
     local dragging, dragInput, dragStart, startPos
     handle = handle or frame
@@ -438,9 +388,7 @@ local function makeDraggable(frame, handle)
     end)
 end
 
--- =============================================
 -- MAIN FRAME
--- =============================================
 local InitialTransparency = 1 - (Settings.GuiTransparency / 500)
 
 local MainFrame = Instance.new("Frame")
@@ -516,7 +464,7 @@ tl.Parent = MainFrame
 local cl = Instance.new("TextLabel")
 cl.Size = UDim2.new(1, 0, 0, 14); cl.Position = UDim2.new(0, 24, 0, 32)
 cl.BackgroundTransparency = 1
-cl.Text = "TOUCHLINE EDITION v2"
+cl.Text = "TOUCHLINE EDITION v3"
 cl.TextColor3 = CurrentTheme.SubText
 cl.TextSize = 9
 cl.Font = Enum.Font.GothamSemibold
@@ -528,7 +476,7 @@ local versionLbl = Instance.new("TextLabel")
 versionLbl.Size = UDim2.new(0, 60, 0, 14)
 versionLbl.Position = UDim2.new(1, -120, 0, 20)
 versionLbl.BackgroundTransparency = 1
-versionLbl.Text = "v2.0"
+versionLbl.Text = "v3.0"
 versionLbl.TextColor3 = CurrentTheme.SubText
 versionLbl.TextSize = 10
 versionLbl.Font = Enum.Font.Gotham
@@ -667,7 +615,7 @@ ContentArea.ClipsDescendants = true
 ContentArea.ZIndex = 3
 ContentArea.Parent = MainFrame
 
--- TABS
+-- TABS (PLAYERS kaldırıldı)
 local tabConfig = {
     {Name = "BALL",      Sub = "Ball control"},
     {Name = "ESP",       Sub = "Visual overlay"},
@@ -1423,20 +1371,14 @@ RunService.RenderStepped:Connect(function()
     Watermark.Visible = getWatermark()
 end)
 
--- =============================================
--- ESP SYSTEM (FIXED)
--- =============================================
+-- ESP SYSTEM
 local ballHighlight = nil
 local ballSphere = nil
 local charSphereData = {}
-local ballPartRef = nil
-local originalBallSize = nil
-local originalBallCanCollide = nil
 
 local function updateESP()
     local ball = findBall()
     
-    -- BALL ESP
     if Settings.BallESP and ball then
         if not ballHighlight or ballHighlight.Parent ~= ball then
             if ballHighlight then ballHighlight:Destroy() end
@@ -1455,7 +1397,6 @@ local function updateESP()
         if ballHighlight then ballHighlight:Destroy() ballHighlight = nil end
     end
     
-    -- BALL HITBOX ESP (ÇEMBER)
     if Settings.BallHitboxESP and ball then
         if not ballSphere or ballSphere.Parent ~= ball then
             if ballSphere then ballSphere:Destroy() end
@@ -1476,7 +1417,6 @@ local function updateESP()
         if ballSphere then ballSphere:Destroy() ballSphere = nil end
     end
     
-    -- PLAYER HITBOX ESP
     if Settings.HitboxESP then
         for _, plr in ipairs(Players:GetPlayers()) do
             if plr ~= LocalPlayer and plr.Character then
@@ -1504,9 +1444,11 @@ local function updateESP()
     end
 end
 
--- =============================================
--- FEATURE LOOPS (BALL HITBOX FIXED - FULL SURFACE HIT)
--- =============================================
+-- FEATURE LOOPS
+local ballPartRef = nil
+local originalBallSize = nil
+local originalBallCanCollide = nil
+
 RunService.RenderStepped:Connect(function()
     updateESP()
     
@@ -1528,20 +1470,16 @@ RunService.RenderStepped:Connect(function()
             
             local s = Settings.BallSize
             
-            -- HITBOX'I BÜYÜT (tam yüzey)
             if ball:IsA("BasePart") then
-                -- Ana top parçasını büyüt
                 ball.Size = Vector3.new(s, s, s)
                 ball.CanCollide = false
                 ball.Massless = true
                 
-                -- Mesh veya SpecialMesh varsa büyüt
                 local mesh = ball:FindFirstChildOfClass("SpecialMesh")
                 if mesh then
                     mesh.Scale = Vector3.new(s / 2, s / 2, s / 2)
                 end
                 
-                -- Top'un içindeki tüm parçaları büyüt (hitbox için)
                 for _, child in ipairs(ball:GetChildren()) do
                     if child:IsA("BasePart") and child ~= ball then
                         if not child:GetAttribute("OriginalSize") then
@@ -1669,7 +1607,7 @@ task.spawn(function()
     }, Enum.EasingStyle.Back, Enum.EasingDirection.Out)
     
     task.wait(0.7)
-    showToast("SOU HUB", "Touchline Edition v2 hazir!", "success")
+    showToast("SOU HUB", "Touchline Edition v3 hazir!", "success")
     task.wait(0.6)
     showToast("Interface", "Press Right Shift to toggle", "info")
 end)
@@ -1677,9 +1615,9 @@ end)
 pcall(function()
     game:GetService("StarterGui"):SetCore("SendNotification", {
         Title = "SOU HUB",
-        Text = "Touchline Edition v2 loaded!",
+        Text = "Touchline Edition v3 loaded!",
         Duration = 5
     })
 end)
 
-print("[SOU HUB] Touchline Winter Edition v2 yuklendi!")
+print("[SOU HUB] Touchline Winter Edition v3 yuklendi!")
